@@ -121,7 +121,7 @@
 
       <div style="margin-top:auto; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:0.82rem; color:var(--muted);">
         <span>My Peer ID: <strong id="myPeerIdDisplay" style="color:var(--text);">Connecting...</strong></span>
-        <span>Admin Feed: <strong id="adminSyncDisplay" style="color:var(--warning);">Searching...</strong></span>
+        <span>Status: <strong id="adminSyncDisplay" style="color:var(--warning);">Searching...</strong></span>
       </div>
     </div>
 
@@ -375,7 +375,7 @@
         delete pendingAdmins[conn.peer];
         if (conn.peer.includes('-monitor-')) {
           adminConns[conn.peer] = conn;
-          document.getElementById('adminSyncDisplay').textContent = 'Synced Live';
+          document.getElementById('adminSyncDisplay').textContent = 'Operational';
           document.getElementById('adminSyncDisplay').style.color = '#22c55e';
           broadcastTelemetry();
         } else {
