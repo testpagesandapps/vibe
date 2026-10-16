@@ -232,7 +232,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <script>
 /* --- Metered.ca Configuration (testpagesandapps.metered.live) --- */
 const METERED_DOMAIN = 'testpagesandapps.metered.live';
-const METERED_API_KEY = localStorage.tl_metered_key || ''; // Optional: Paste your Metered API Key here or in Admin
+const METERED_API_KEY = 'sk_secret_e10852eb09d5820b15f9bed23597aa18ad630c2f29815ec07bcd40fe901a254a';
 
 const $ = s => document.querySelector(s);
 const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'luna2026';
@@ -384,23 +384,14 @@ async function requestMediaStream(withAudio = true) {
 
 /* --- Dynamic Metered.ca TURN + Fallback ICE Fetcher --- */
 async function getIceServers() {
+  const apiKey = 'sk_secret_e10852eb09d5820b15f9bed23597aa18ad630c2f29815ec07bcd40fe901a254a';
   const fallback = [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun.metered.ca:80' },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
+    { urls: 'stun:stun.metered.ca:80' }
   ];
-  const key = localStorage.tl_metered_key || METERED_API_KEY;
-  if (!key) return fallback;
+  if (!apiKey) return fallback;
   try {
-    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${encodeURIComponent(key)}`);
+    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${encodeURIComponent(apiKey)}`);
     if (res.ok) {
       const turnServers = await res.json();
       if (Array.isArray(turnServers) && turnServers.length) return turnServers;
