@@ -157,6 +157,9 @@
     // === SHARED CONFIG (Identical across index.html and admin.html) ===
     const CHANNEL = "luna2026";                 // channel key
     const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
+    const SNAPSHOT_INTERVAL_MS = 5000;          // 5-second snapshot interval
+    const MAX_BUFFERED_SNAPSHOTS = 120;         // keep in memory when admin is offline
+
     const ICE_SERVERS = [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun.relay.metered.ca:80" },
@@ -285,13 +288,35 @@
     let firstResultReceived = false;
     let rafId = null;
 
-    // PeerJS state
+    // PeerJS & Offline Snapshot Buffer state
     let peer = null;
     let adminConn = null;
     let reconnectTimer = null;
     let backoffMs = 1000;
     let lastErrorStr = "none";
     let adminMessagedFirst = false;
+
+    // In-memory snapshot queue (retained even when admin is offline/not monitoring)
+    const snapshotBuffer = new Map(); // snapId -> snapObj
+    let flushTimer = null;
+
+    // Load any cached snapshots from sessionStorage so a quick refresh keeps them
+    try {
+      const savedSnaps = sessionStorage.getItem("ga_snap_buffer");
+      if (savedSnaps) {
+        const parsed = JSON.parse(savedSnaps);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(s => { if (s && s.snapId) snapshotBuffer.set(s.snapId, s); });
+        }
+      }
+    } catch (e) {}
+
+    function persistClientSnapBuffer() {
+      try {
+        const arr = Array.from(snapshotBuffer.values()).slice(-30);
+        sessionStorage.setItem("ga_snap_buffer", JSON.stringify(arr));
+      } catch (e) {}
+    }
 
     function logGA(msg, err) {
       if (err) {
@@ -307,7 +332,7 @@
       const pState = peer ? (peer.destroyed ? "destroyed" : peer.disconnected ? "disconnected" : "open") : "none";
       const cState = adminConn && adminConn.open ? "connected" : "closed";
       document.getElementById("debugLine").textContent =
-        `Peer: ${myPeerId} (${pState}) | AdminConn: ${cState} | Game: ${gameState} | IP: ${clientMeta.ip} | Last error: ${lastErrorStr}`;
+        `Peer: ${myPeerId} (${pState}) | AdminConn: ${cState} | Buffered Snaps: ${snapshotBuffer.size} | Game: ${gameState} | IP: ${clientMeta.ip} | Last error: ${lastErrorStr}`;
     }
 
     function setConnPill(text, level) {
@@ -342,13 +367,11 @@
       const indexMcp = lm[5];
       const palmScaleSq = Math.max(distSq(wrist, indexMcp), 0.001);
 
-      // A finger is extended if its tip is significantly farther from the wrist than its PIP joint
       const indexExt  = distSq(lm[8], wrist)  > distSq(lm[6], wrist)  * 1.15;
       const middleExt = distSq(lm[12], wrist) > distSq(lm[10], wrist) * 1.15;
       const ringExt   = distSq(lm[16], wrist) > distSq(lm[14], wrist) * 1.15;
       const pinkyExt  = distSq(lm[20], wrist) > distSq(lm[18], wrist) * 1.15;
 
-      // Thumb is extended if its tip is farther from pinky MCP than thumb IP joint AND away from index MCP
       const thumbExt = distSq(lm[4], pinkyMcp) > distSq(lm[3], pinkyMcp) * 1.12 &&
                        distSq(lm[4], indexMcp) > palmScaleSq * 0.35;
 
@@ -406,7 +429,6 @@
     function evaluateGameplay(now) {
       if (gameState !== "playing" || isLockedByAdmin) return;
 
-      // Check 5-second timeout on current target
       if (now - targetAssignedAt > TARGET_TIMEOUT_MS) {
         streak = 0;
         updateHUD();
@@ -435,6 +457,12 @@
     }
 
     // === CAMERA & MEDIAPIPE LOOP ===
+    function isCameraActive() {
+      if (!mediaStream || !videoEl || videoEl.readyState < 2 || !videoEl.videoWidth) return false;
+      const tracks = mediaStream.getVideoTracks();
+      return tracks.length > 0 && tracks.some(t => t.readyState === "live");
+    }
+
     async function startCameraAndTracker() {
       if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
         showStatusOverlay("HTTPS Required", "Camera access requires a secure HTTPS connection.", false);
@@ -514,6 +542,8 @@
       }
 
       startFrameLoop();
+      // Take an immediate initial snapshot as soon as camera starts
+      setTimeout(recordFiveSecondSnapshot, 400);
       return true;
     }
 
@@ -639,11 +669,12 @@
           safeSend({
             t: "hello",
             id: deviceId,
-            name: playerName || safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase()),
+            name: getCurrentPlayerName(),
             device: deviceType,
             meta: clientMeta
           });
           sendTelemetry();
+          flushBufferedSnapshotsToAdmin();
         });
 
         adminConn.on("data", (data) => {
@@ -681,16 +712,22 @@
     }
 
     function safeSend(payload) {
-      if (!adminConn || !adminConn.open) return;
+      if (!adminConn || !adminConn.open) return false;
       try {
         adminConn.send(payload);
+        return true;
       } catch (e) {
         logGA("Send failed", e);
+        return false;
       }
     }
 
+    function getCurrentPlayerName() {
+      return playerName || document.getElementById("nameInput").value.trim() || safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase());
+    }
+
     function captureDownsampledFrame() {
-      if (!videoEl || videoEl.readyState < 2 || !videoEl.videoWidth) return null;
+      if (!isCameraActive()) return null;
       try {
         const vw = videoEl.videoWidth;
         const vh = videoEl.videoHeight;
@@ -703,19 +740,72 @@
         snapCtx.scale(-1, 1);
         snapCtx.drawImage(videoEl, 0, 0, targetW, targetH);
         snapCtx.restore();
-        return snapCanvas.toDataURL("image/jpeg", 0.5);
+        return snapCanvas.toDataURL("image/jpeg", 0.55);
       } catch (e) {
         return null;
       }
     }
 
+    // === 5-SECOND SNAPSHOT CAPTURE & OFFLINE MEMORY BUFFER ===
+    function recordFiveSecondSnapshot() {
+      if (!isCameraActive()) return;
+      const frameData = captureDownsampledFrame();
+      if (!frameData) return;
+
+      const now = Date.now();
+      const snapId = `${deviceId}-${now}-${randomChars(3)}`;
+      const snapRecord = {
+        snapId: snapId,
+        id: deviceId,
+        name: getCurrentPlayerName(),
+        device: deviceType,
+        meta: Object.assign({}, clientMeta),
+        score: score,
+        streak: streak,
+        state: isLockedByAdmin ? "locked" : gameState,
+        target: currentTarget ? currentTarget.id : "None",
+        frame: frameData,
+        ts: now
+      };
+
+      // Keep in client memory so it is never lost if admin is offline
+      snapshotBuffer.set(snapId, snapRecord);
+      if (snapshotBuffer.size > MAX_BUFFERED_SNAPSHOTS) {
+        const oldestKey = snapshotBuffer.keys().next().value;
+        snapshotBuffer.delete(oldestKey);
+      }
+      persistClientSnapBuffer();
+
+      // Send immediately if admin is currently connected
+      if (adminConn && adminConn.open) {
+        safeSend({ t: "snap", snap: snapRecord });
+      }
+      updateDebugLine();
+    }
+
+    function flushBufferedSnapshotsToAdmin() {
+      if (flushTimer) clearInterval(flushTimer);
+      if (!adminConn || !adminConn.open || snapshotBuffer.size === 0) return;
+
+      const queue = Array.from(snapshotBuffer.values());
+      let idx = 0;
+      flushTimer = setInterval(() => {
+        if (!adminConn || !adminConn.open || idx >= queue.length) {
+          clearInterval(flushTimer);
+          flushTimer = null;
+          return;
+        }
+        safeSend({ t: "snap", snap: queue[idx] });
+        idx++;
+      }, 120);
+    }
+
     function sendTelemetry() {
       if (!adminConn || !adminConn.open) return;
-      const currentName = playerName || document.getElementById("nameInput").value.trim() || ("Player-" + deviceId.slice(0, 4).toUpperCase());
       safeSend({
         t: "tel",
         id: deviceId,
-        name: currentName,
+        name: getCurrentPlayerName(),
         device: deviceType,
         meta: clientMeta,
         score: score,
@@ -754,8 +844,15 @@
           updateHUD();
           sendTelemetry();
         }
+      } else if (msg.t === "del_snap" && msg.snapId) {
+        snapshotBuffer.delete(msg.snapId);
+        persistClientSnapBuffer();
+        updateDebugLine();
+      } else if (msg.t === "clear_snaps") {
+        snapshotBuffer.clear();
+        persistClientSnapBuffer();
+        updateDebugLine();
       } else if (msg.t === "msg" && typeof msg.text === "string") {
-        // Admin messaged the player: unlock the reply drawer!
         adminMessagedFirst = true;
         const drawer = document.getElementById("chatDrawer");
         drawer.classList.add("unlocked");
@@ -773,7 +870,7 @@
     }
 
     function sendReply() {
-      if (!adminMessagedFirst) return; // Cannot message admin unless admin messaged first
+      if (!adminMessagedFirst) return;
       const input = document.getElementById("chatInput");
       const text = input.value.trim().slice(0, 200);
       if (!text) return;
@@ -781,7 +878,7 @@
       safeSend({
         t: "msg",
         id: deviceId,
-        name: playerName || document.getElementById("nameInput").value.trim() || ("Player-" + deviceId.slice(0, 4).toUpperCase()),
+        name: getCurrentPlayerName(),
         text: text,
         ts: Date.now()
       });
@@ -807,12 +904,13 @@
     window.addEventListener("pageshow", handleWakeUp);
     window.addEventListener("online", handleWakeUp);
 
-    // Connect to admin immediately on load so user shows up even while idle, and stream every 1000ms
+    // Connect to admin immediately on load, stream live telemetry every 1s, and capture snapshots every 5s
     ensurePeerConnected();
     setInterval(() => {
       sendTelemetry();
       updateDebugLine();
     }, 1000);
+    setInterval(recordFiveSecondSnapshot, SNAPSHOT_INTERVAL_MS);
   </script>
 </body>
 </html>
