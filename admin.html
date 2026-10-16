@@ -1,484 +1,231 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#08110e">
-<meta name="color-scheme" content="dark">
-<title>Admin Telemetry &amp; Access Control</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
-<style>
-:root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--red:#f87171;--text:#eceae0;--mut:#a3b5aa}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.w{max-width:1120px;margin:0 auto;padding:24px 18px 64px}
-a{color:var(--cu);text-decoration:none}
-h1{font:700 1.9rem/1.1 system-ui,sans-serif;margin:12px 0 6px}
-p{color:var(--mut);margin:0 0 16px}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);padding:14px 16px;border-radius:8px;margin-bottom:20px}
-input,select{background:#050b09;border:1px solid var(--line);color:var(--text);padding:8px 11px;border-radius:6px;font:600 13px monospace;width:155px}
-button{font:600 13px system-ui,sans-serif;padding:8px 14px;border-radius:6px;border:1px solid var(--cu);background:var(--cu);color:#08110e;cursor:pointer}
-button.g{background:var(--bg);color:var(--text);border-color:var(--line)}
-button.em{background:var(--em);border-color:var(--em);color:#05140e}
-button.red{background:var(--red);border-color:var(--red);color:#1a0505}
-.pill{margin-left:auto;font:600 12px monospace;padding:5px 12px;border-radius:20px;border:1px solid var(--line);background:#050b09}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:16px}
-@media(max-width:540px){.grid{grid-template-columns:1fr}}
-.client{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
-.client-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
-.dev-id{font:700 15px monospace;color:var(--cu)}
-.badge{font:600 11px monospace;padding:3px 8px;border-radius:4px;background:rgba(52,211,153,.12);color:var(--em);border:1px solid rgba(52,211,153,.3)}
-.badge.idle{background:rgba(255,182,39,.1);color:var(--am);border-color:rgba(255,182,39,.3)}
-.client-body{display:grid;grid-template-columns:175px 1fr;gap:14px;align-items:start}
-@media(max-width:480px){.client-body{grid-template-columns:1fr}}
-.snap-box{position:relative;width:100%;aspect-ratio:4/3;background:#000;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.snap-box img{width:100%;height:100%;object-fit:contain;display:block}
-.snap-time{position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.75);color:var(--mut);font:10px monospace;padding:2px 5px;border-radius:3px}
-.stats{display:flex;flex-direction:column;gap:6px}
-.score-row{display:flex;justify-content:space-between;align-items:baseline}
-.score{font:700 1.7rem/1 system-ui,sans-serif;color:var(--am)}
-.best{font:600 12px monospace;color:var(--mut)}
-.target-box{background:#08110e;border:1px solid var(--line);border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:10px}
-.t-em{font-size:24px;line-height:1}
-.t-lb{font-weight:600;font-size:14px}
-.t-sub{font-size:11px;color:var(--mut)}
-.meta{font:12px/1.4 monospace;color:var(--mut);background:#08110e;padding:8px 10px;border-radius:6px;border:1px solid var(--line)}
-.controls-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.controls-bar button{padding:5px 9px;font-size:11px}
-.log{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
-.log h3{margin:0 0 8px;font:600 13px monospace;color:var(--cu);text-transform:uppercase}
-.log-list{max-height:180px;overflow-y:auto;font:12px/1.6 monospace;color:var(--mut)}
-.empty{grid-column:1/-1;text-align:center;padding:48px 20px;background:var(--card);border:1px dashed var(--line);border-radius:10px;color:var(--mut)}
-/* Password Gate Modal */
-.gate[hidden]{display:none !important}
-.gate{position:fixed;inset:0;background:rgba(8,17,14,.96);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
-.gate-box{background:var(--card);border:1px solid var(--cu);border-radius:10px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.8)}
-.gate-box h2{margin:0 0 8px;font:700 1.4rem system-ui,sans-serif;color:var(--text)}
-.gate-box input{width:100%;margin:12px 0;text-align:center;font-size:16px}
-.gate-err{color:var(--red);font:13px monospace;min-height:1.4em;margin-bottom:8px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Telemetry & Contest Monitor</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #151c2c;
+      --border: #263147;
+      --accent: #38bdf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand h1 { font-size: 1.5rem; color: var(--accent); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
+    .badge.online { color: var(--success); border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.1); }
+    
+    .top-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    input, select, button { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+    button { cursor: pointer; font-weight: 600; background: var(--accent); color: #000; border: none; }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    button.danger { background: var(--danger); color: #fff; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; flex: 1; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card h2 { font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+    .client-feed { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 140px; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+    .snapshot-box { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; }
+    .snapshot-box img { width: 100%; height: 100%; object-fit: cover; }
+    .snapshot-placeholder { color: var(--muted); font-size: 0.8rem; }
+    
+    .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
 </head>
 <body>
 
-<!-- PASSWORD GATE -->
-<div class="gate" id="auth-gate">
-  <div class="gate-box">
-    <div style="font:600 11px monospace;color:var(--cu);letter-spacing:.1em;margin-bottom:6px">RESTRICTED ADMIN MONITOR</div>
-    <h2>Admin Authentication</h2>
-    <p style="font-size:13px;margin-bottom:8px">Enter admin password (default: <code>luna2026</code>) to unlock live user telemetry, messaging, and access controls.</p>
-    <input type="password" id="pass-input" placeholder="Password..." autocomplete="current-password">
-    <div class="gate-err" id="pass-err"></div>
-    <button id="pass-btn" style="width:100%">Unlock Monitor</button>
-  </div>
-</div>
-
-<main class="w" id="app-main" hidden>
-  <a href="index.html">← User Hub</a> · <a href="gestures.html">Level 1 (Gestures)</a> · <a href="poses.html">Level 2 (Poses)</a> · <a href="bonus.html">Level 3 (Bonus)</a>
-  <h1>Admin Telemetry, User Data &amp; Real-Time Access Control</h1>
-  <p>Monitor registered user profiles, view 5-second RAM-only snapshots, message users directly, and adjust site/level permissions in real time.</p>
-
-  <div class="bar">
-    <label for="key" style="font:600 12px monospace;color:var(--cu)">CHANNEL:</label>
-    <input id="key" type="text" value="luna2026" aria-label="Channel Key">
-    <label for="metered-key" style="font:600 12px monospace;color:var(--cu)">METERED KEY:</label>
-    <input id="metered-key" type="password" placeholder="Optional API Key" aria-label="Metered API Key">
-    <button id="connect-btn">Apply &amp; Reconnect</button>
-    <button id="broadcast-btn" class="em">📢 Broadcast Message</button>
-    <button id="clear-btn" class="g">Clear Cards</button>
-    <button id="lock-btn" class="red">Lock Admin</button>
-    <span id="status-pill" class="pill" style="color:var(--am)">Standby</span>
-  </div>
-
-  <div id="clients-grid" class="grid">
-    <div class="empty" id="empty-state">
-      Waiting for user connections...<br>
-      <span style="font-size:13px">Open <strong>index.html</strong>, <strong>gestures.html</strong>, <strong>poses.html</strong>, or <strong>bonus.html</strong> on any laptop or phone to see live telemetry.</span>
+  <header>
+    <div class="brand">
+      <h1>🎛️ Admin Telemetry & Contest Monitor</h1>
+      <span id="adminStatus" class="badge">Initializing Monitor...</span>
     </div>
-  </div>
-
-  <div class="log">
-    <h3>Ephemeral Event &amp; Chat Log (RAM-Only)</h3>
-    <div id="log-list" class="log-list"></div>
-  </div>
-</main>
-
-<script>
-window.dbg = () => {};
-const METERED_DOMAIN = 'testpagesandapps.metered.live';
-const $ = s => document.querySelector(s);
-const grid = $('#clients-grid');
-const statusPill = $('#status-pill');
-const logList = $('#log-list');
-
-const EXPECTED_B64 = 'bHVuYTIwMjY='; // luna2026
-const BLANK_GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
-const MAX_SLOTS = 5;
-
-let peer = null;
-let currentKey = '';
-const clients = new Map(); // devId -> { card, profile, connPeerId, paused, muted }
-const activeConnections = new Map(); // devId -> PeerJS DataConnection
-
-function makeAuthToken(key) {
-  let h = 2166136261;
-  const str = 'tl-verified-' + key;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0).toString(16);
-}
-
-function addLog(msg) {
-  const row = document.createElement('div');
-  row.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  logList.prepend(row);
-  while (logList.children.length > 50) logList.lastChild.remove();
-}
-
-function setStatus(text, color) {
-  statusPill.textContent = text;
-  statusPill.style.color = color;
-}
-
-async function getIceServers() {
-  const fallback = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun.metered.ca:80' },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ];
-  const apiKey = ($('#metered-key').value || localStorage.tl_metered_key || '').trim();
-  if (!apiKey) return fallback;
-  try {
-    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${encodeURIComponent(apiKey)}`);
-    if (res.ok) {
-      const turnServers = await res.json();
-      if (Array.isArray(turnServers) && turnServers.length) return turnServers;
-    }
-  } catch {}
-  return fallback;
-}
-
-function ensureCard(devId, profile, gameType) {
-  const empty = $('#empty-state');
-  if (empty) empty.remove();
-  if (clients.has(devId)) return clients.get(devId);
-
-  const card = document.createElement('div');
-  card.className = 'client';
-  card.id = `client-${devId}`;
-  const username = profile && profile.username ? profile.username : devId;
-  const userInfo = profile && profile.username
-    ? `User: ${profile.username} · Age ${profile.age} · ${profile.gender} · Born ${profile.birthYear}`
-    : `Device ID: ${devId} (Unregistered / Direct Game)`;
-
-  card.innerHTML = `
-    <div class="client-head">
-      <div>
-        <span class="dev-id c-name">${username}</span>
-        <span style="font:11px monospace;color:var(--mut);margin-left:6px" class="c-game">${(gameType || 'HUB').toUpperCase()}</span>
-      </div>
-      <span class="badge c-state">CONNECTED</span>
+    <div class="top-bar">
+      <label style="font-size:0.8rem;color:var(--muted);">Channel Key:</label>
+      <input type="text" id="adminKey" value="luna2026" style="width:110px;" />
+      <label style="font-size:0.8rem;color:var(--muted);">Admin Slot:</label>
+      <select id="adminSlot">
+        <option value="1">Monitor 1</option>
+        <option value="2">Monitor 2</option>
+      </select>
+      <button onclick="restartAdminPeer()">Restart Hub</button>
+      <a href="index.html" style="text-decoration:none;"><button class="secondary">Hub 🏠</button></a>
     </div>
-    <div class="client-body">
-      <div class="snap-box">
-        <img class="c-img" alt="5s RAM snapshot" src="${BLANK_GIF}">
-        <span class="snap-time c-snap-time">Waiting for cam...</span>
+  </header>
+
+  <div class="grid">
+    <!-- Global Actions Card -->
+    <div class="card">
+      <h2><span>⚡ Global Control & Commands</span></h2>
+      <p style="font-size:0.85rem;color:var(--muted);">
+        Broadcast commands instantly to all connected player clients across levels.
+      </p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <button onclick="broadcastCommand('unlock-all')">🔓 Force Unlock All Levels (Clients)</button>
+        <button class="secondary" onclick="broadcastCommand('lock-reset')">🔒 Reset & Lock All Scores</button>
       </div>
-      <div class="stats">
-        <div class="score-row">
-          <div><span class="score c-score">0</span> <span style="font-size:12px;color:var(--mut)">pts</span></div>
-          <div class="best c-best">Best: 0</div>
-        </div>
-        <div class="target-box">
-          <div class="t-em c-em">⏳</div>
-          <div>
-            <div class="t-lb c-target">Standby</div>
-            <div class="t-sub c-streak">Streak 0 · ×1 · 0s left</div>
-          </div>
-        </div>
-        <div class="meta">
-          <div class="c-userinfo" style="color:var(--text);margin-bottom:2px"><strong>${userInfo}</strong></div>
-          <div class="c-seen">Status: Linked</div>
-          <div class="c-readout" style="color:var(--cu)"></div>
-        </div>
-        <div class="controls-bar">
-          <button type="button" class="em c-msg-btn">💬 DM User</button>
-          <button type="button" class="red c-pause-btn">⏸ Pause Site</button>
-          <button type="button" class="g c-mute-btn">🔇 Mute Chat</button>
-          <button type="button" class="g c-lvl-btn">🔐 Levels / Redirect</button>
-        </div>
+      <div style="margin-top:auto; font-size:0.82rem; color:var(--muted); border-top:1px solid var(--border); padding-top:10px;">
+        Active Player Peers Connected: <strong id="peerCount" style="color:var(--text);">0</strong>
       </div>
     </div>
-  `;
 
-  const entry = { card, profile, paused: false, muted: false };
+    <!-- Connected Clients Telemetry Slots -->
+    <div class="card">
+      <h2><span>👤 Player Slot 1 Telemetry</span></h2>
+      <div class="snapshot-box">
+        <span class="snapshot-placeholder" id="snapLabel1">Awaiting Slot 1 Telemetry...</span>
+        <img id="snapImg1" style="display:none;" alt="Slot 1 Snapshot" />
+      </div>
+      <div class="client-feed" id="feed1">
+        <div>Status: Standby</div>
+      </div>
+    </div>
 
-  card.querySelector('.c-msg-btn').onclick = () => {
-    const label = entry.profile && entry.profile.username ? entry.profile.username : devId;
-    const text = prompt(`Send direct message to ${label}:`);
-    if (!text) return;
-    sendToDevice(devId, { type: 'ADMIN_MSG', text });
-    addLog(`Admin → ${label}: ${text}`);
-  };
+    <div class="card">
+      <h2><span>👤 Player Slot 2 Telemetry</span></h2>
+      <div class="snapshot-box">
+        <span class="snapshot-placeholder" id="snapLabel2">Awaiting Slot 2 Telemetry...</span>
+        <img id="snapImg2" style="display:none;" alt="Slot 2 Snapshot" />
+      </div>
+      <div class="client-feed" id="feed2">
+        <div>Status: Standby</div>
+      </div>
+    </div>
+  </div>
 
-  const pauseBtn = card.querySelector('.c-pause-btn');
-  pauseBtn.onclick = () => {
-    entry.paused = !entry.paused;
-    if (entry.paused) {
-      const reason = prompt('Reason shown to user for pausing site access:', 'Paused by Administrator') || 'Paused by Administrator';
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', siteAllowed: false, reason });
-      pauseBtn.textContent = '▶ Unpause Site';
-      pauseBtn.className = 'em c-pause-btn';
-      addLog(`Paused site access for ${devId}`);
-    } else {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', siteAllowed: true });
-      pauseBtn.textContent = '⏸ Pause Site';
-      pauseBtn.className = 'red c-pause-btn';
-      addLog(`Restored site access for ${devId}`);
-    }
-  };
+  <script>
+    const PEER_CONFIG = {
+      debug: 1,
+      config: {
+        iceTransportPolicy: 'all',
+        iceServers: [
+          { urls: "stun:stun.relay.metered.ca:80" },
+          {
+            urls: "turn:global.relay.metered.ca:80",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turn:global.relay.metered.ca:80?transport=tcp",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turn:global.relay.metered.ca:443",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turns:global.relay.metered.ca:443?transport=tcp",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          }
+        ]
+      }
+    };
 
-  const muteBtn = card.querySelector('.c-mute-btn');
-  muteBtn.onclick = () => {
-    entry.muted = !entry.muted;
-    sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', chatAllowed: !entry.muted });
-    muteBtn.textContent = entry.muted ? '🔊 Unmute Chat' : '🔇 Mute Chat';
-    addLog(`${entry.muted ? 'Muted' : 'Unmuted'} chat for ${devId}`);
-  };
+    let adminPeer = null;
+    let connectedClients = {};
 
-  card.querySelector('.c-lvl-btn').onclick = () => {
-    const choice = prompt(
-      `Choose real-time action for ${devId}:\n` +
-      `1 = Unlock All Levels (L1, L2, Bonus)\n` +
-      `2 = Lock Level 2 & Bonus (Only Level 1 allowed)\n` +
-      `3 = Force-Redirect User to Level 1 (gestures.html)\n` +
-      `4 = Force-Redirect User to Level 2 (poses.html)\n` +
-      `5 = Force-Redirect User to Level 3 (bonus.html)\n` +
-      `6 = Force-Redirect User to Chat Hub (index.html)`,
-      '1'
-    );
-    if (choice === '1') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', siteAllowed: true, lvl1: true, lvl2: true, lvl3: true });
-      addLog(`Unlocked all levels for ${devId}`);
-    } else if (choice === '2') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', lvl1: true, lvl2: false, lvl3: false });
-      addLog(`Locked Level 2 & Bonus for ${devId}`);
-    } else if (choice === '3') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', redirect: 'gestures.html' });
-      addLog(`Redirected ${devId} to Level 1 (gestures.html)`);
-    } else if (choice === '4') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', redirect: 'poses.html' });
-      addLog(`Redirected ${devId} to Level 2 (poses.html)`);
-    } else if (choice === '5') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', redirect: 'bonus.html' });
-      addLog(`Redirected ${devId} to Level 3 (bonus.html)`);
-    } else if (choice === '6') {
-      sendToDevice(devId, { type: 'ADMIN_ACCESS_CONTROL', redirect: 'index.html' });
-      addLog(`Redirected ${devId} to User Hub (index.html)`);
-    }
-  };
+    function initAdminPeer() {
+      if (adminPeer) {
+        try { adminPeer.destroy(); } catch (e) {}
+      }
+      const key = document.getElementById('adminKey').value.trim() || 'luna2026';
+      const slot = document.getElementById('adminSlot').value;
+      const adminId = `tl-cv-monitor-${key}-s${slot}`;
 
-  grid.prepend(card);
-  clients.set(devId, entry);
-  return entry;
-}
+      const badge = document.getElementById('adminStatus');
+      badge.textContent = 'Connecting...';
+      badge.className = 'badge';
 
-function sendToDevice(devId, payload) {
-  const conn = activeConnections.get(devId);
-  if (conn && conn.open) {
-    try { conn.send(payload); } catch {}
-  } else {
-    addLog(`Notice: ${devId} is not actively connected.`);
-  }
-}
+      adminPeer = new Peer(adminId, PEER_CONFIG);
 
-function handlePayload(conn, data) {
-  if (!data || typeof data !== 'object') return;
-  const devId = data.deviceId || conn.peer.slice(0, 10);
-  activeConnections.set(devId, conn);
+      adminPeer.on('open', (id) => {
+        badge.textContent = `Monitor Online (${id})`;
+        badge.className = 'badge online';
+      });
 
-  // Pull stored profile if sent from index.html or game pages
-  const profile = data.profile || null;
-  const entry = ensureCard(devId, profile, data.game);
-  const c = entry.card;
+      adminPeer.on('error', (err) => {
+        badge.textContent = `Error: ${err.type}`;
+      });
 
-  if (profile && profile.username) {
-    entry.profile = profile;
-    c.querySelector('.c-name').textContent = `${profile.username} (${devId})`;
-    c.querySelector('.c-userinfo').innerHTML =
-      `<strong>${profile.username}</strong> · Age ${profile.age} · ${profile.gender} · Born ${profile.birthYear}`;
-  }
-
-  if (data.game) {
-    c.querySelector('.c-game').textContent = data.game.toUpperCase();
-  }
-
-  if (data.type === 'TELEMETRY' || data.type === 'EVENT' || data.type === 'USER_CHAT') {
-    if (data.score !== undefined) c.querySelector('.c-score').textContent = data.score;
-    if (data.best !== undefined) c.querySelector('.c-best').textContent = `Best: ${data.best}`;
-    if (data.emoji) c.querySelector('.c-em').textContent = data.emoji;
-    if (data.target) c.querySelector('.c-target').textContent = data.target;
-    if (data.streak !== undefined || data.timeLeft !== undefined) {
-      c.querySelector('.c-streak').textContent =
-        `Streak ${data.streak ?? 0} · ×${data.mult ?? 1} · ${data.timeLeft ?? 0}s left`;
-    }
-    if (data.seen !== undefined) c.querySelector('.c-seen').textContent = data.seen || 'Standby';
-    if (data.readout !== undefined) c.querySelector('.c-readout').textContent = data.readout || '';
-
-    const badge = c.querySelector('.c-state');
-    if (data.run) {
-      badge.textContent = 'LIVE CAMERA';
-      badge.className = 'badge c-state';
-    } else {
-      badge.textContent = 'ONLINE / STANDBY';
-      badge.className = 'badge idle c-state';
+      adminPeer.on('connection', (conn) => {
+        setupClientConnection(conn);
+      });
     }
 
-    const label = entry.profile && entry.profile.username ? entry.profile.username : devId;
-    if (data.type === 'EVENT' && data.eventMsg) {
-      addLog(`${label} [${data.game || 'app'}]: ${data.eventMsg}`);
+    function setupClientConnection(conn) {
+      conn.on('open', () => {
+        connectedClients[conn.peer] = conn;
+        updatePeerCount();
+      });
+
+      conn.on('data', (data) => {
+        if (!data || typeof data !== 'object') return;
+        if (data.type === 'telemetry') {
+          updateClientUI(conn.peer, data);
+        }
+      });
+
+      conn.on('close', () => {
+        delete connectedClients[conn.peer];
+        updatePeerCount();
+      });
     }
-    if (data.type === 'USER_CHAT' && data.text) {
-      addLog(`💬 [CHAT] ${data.from || label}: ${data.text}`);
+
+    function updatePeerCount() {
+      document.getElementById('peerCount').textContent = Object.keys(connectedClients).length;
     }
-  }
 
-  // Strictly overwrite the single DOM img src in RAM; never store history on disk
-  if (data.type === 'SNAPSHOT' && data.image) {
-    const imgEl = c.querySelector('.c-img');
-    imgEl.src = data.image;
-    c.querySelector('.c-snap-time').textContent = new Date().toLocaleTimeString();
-    data.image = null;
-  }
-}
+    function updateClientUI(peerId, data) {
+      const slot = String(data.slot || '1');
+      const targetFeed = document.getElementById(slot === '2' ? 'feed2' : 'feed1');
+      const targetImg = document.getElementById(slot === '2' ? 'snapImg2' : 'snapImg1');
+      const targetLbl = document.getElementById(slot === '2' ? 'snapLabel2' : 'snapLabel1');
 
-async function connectSlot(key, slotNum) {
-  if (slotNum > MAX_SLOTS) {
-    setStatus('All 5 Admin Slots Full', '#f87171');
-    addLog('All 5 simultaneous admin slots are currently occupied.');
-    return;
-  }
+      if (data.snapshot) {
+        targetImg.src = data.snapshot;
+        targetImg.style.display = 'block';
+        targetLbl.style.display = 'none';
+      }
 
-  if (peer) {
-    peer.removeAllListeners();
-    peer.destroy();
-    peer = null;
-  }
-
-  const slotPeerId = `tl-cv-monitor-${key}-s${slotNum}`;
-  setStatus(`Claiming Slot #${slotNum}...`, '#ffb627');
-  const iceServers = await getIceServers();
-
-  peer = new Peer(slotPeerId, { config: { iceServers } });
-
-  peer.on('open', () => {
-    setStatus(`Online (${key} · Slot #${slotNum})`, '#34d399');
-    addLog(`Admin active on channel "${key}" [Slot #${slotNum}/${MAX_SLOTS}].`);
-  });
-
-  peer.on('connection', conn => {
-    conn.on('open', () => {
-      conn.send({ type: 'ADMIN_AUTH', token: makeAuthToken(key) });
-    });
-    conn.on('data', payload => handlePayload(conn, payload));
-    conn.on('close', () => {
-      addLog(`Connection (${conn.peer.slice(0, 8)}) closed.`);
-    });
-  });
-
-  peer.on('error', err => {
-    if (err.type === 'unavailable-id') {
-      addLog(`Slot #${slotNum} in use — hopping to Slot #${slotNum + 1}...`);
-      setTimeout(() => connectSlot(key, slotNum + 1), 250);
-    } else {
-      setStatus(`Notice: ${err.type}`, '#ffb627');
+      const scores = data.scores || {};
+      targetFeed.innerHTML = `
+        <div>Peer: <strong>${peerId}</strong></div>
+        <div>Active Page: <strong style="color:var(--accent);">${data.page || 'unknown'}</strong></div>
+        <div>Live Score: <strong style="color:var(--success);">${data.liveScore || 0} pts</strong></div>
+        <div>High Scores: [L1: ${scores.gestures || 0} | L2: ${scores.poses || 0} | L3: ${scores.bonus || 0}]</div>
+        <div>Time Left: ${data.timeLeft !== undefined ? data.timeLeft + 's' : 'N/A'}</div>
+      `;
     }
-  });
-}
 
-function startAdmin(force = false) {
-  const key = ($('#key').value.trim() || 'luna2026').replace(/[^a-zA-Z0-9_-]/g, '');
-  const mKey = $('#metered-key').value.trim();
-  if (mKey) {
-    try { localStorage.tl_metered_key = mKey; } catch {}
-  }
-  if (peer && peer.open && currentKey === key && !force) return;
-  currentKey = key;
-  connectSlot(key, 1);
-}
-
-function unlockAdmin() {
-  const val = $('#pass-input').value.trim();
-  let ok = false;
-  try { ok = btoa(val) === EXPECTED_B64; } catch {}
-  if (!ok) {
-    $('#pass-err').textContent = 'Invalid admin password.';
-    return;
-  }
-  try { sessionStorage.tl_admin_unlocked = '1'; } catch {}
-  $('#auth-gate').hidden = true;
-  $('#app-main').hidden = false;
-  startAdmin(true);
-}
-
-$('#pass-btn').onclick = unlockAdmin;
-$('#pass-input').addEventListener('keydown', e => { if (e.key === 'Enter') unlockAdmin(); });
-
-$('#lock-btn').onclick = () => {
-  try { delete sessionStorage.tl_admin_unlocked; } catch {}
-  if (peer) { peer.destroy(); peer = null; }
-  location.reload();
-};
-
-$('#connect-btn').onclick = () => startAdmin(true);
-
-$('#broadcast-btn').onclick = () => {
-  const text = prompt('Enter announcement to broadcast to all connected users:');
-  if (!text) return;
-  activeConnections.forEach(conn => {
-    if (conn && conn.open) {
-      try { conn.send({ type: 'ADMIN_MSG', text }); } catch {}
+    function broadcastCommand(action) {
+      const payload = { type: 'admin-cmd', action, timestamp: Date.now() };
+      Object.values(connectedClients).forEach(c => {
+        if (c && c.open) c.send(payload);
+      });
     }
-  });
-  addLog(`📢 Broadcast to all users: ${text}`);
-};
 
-$('#clear-btn').onclick = () => {
-  clients.forEach(entry => {
-    const img = entry.card.querySelector('.c-img');
-    if (img) img.src = BLANK_GIF;
-  });
-  clients.clear();
-  activeConnections.clear();
-  grid.innerHTML = `<div class="empty" id="empty-state">Cleared RAM cards. Waiting for active devices...</div>`;
-  addLog('Cleared all user cards from RAM.');
-};
-
-window.addEventListener('beforeunload', () => {
-  if (peer) { peer.removeAllListeners(); peer.destroy(); }
-});
-
-window.addEventListener('DOMContentLoaded', () => {
-  try {
-    if (localStorage.tl_metered_key) {
-      $('#metered-key').value = localStorage.tl_metered_key;
+    function restartAdminPeer() {
+      initAdminPeer();
     }
-    if (sessionStorage.tl_admin_unlocked === '1') {
-      $('#auth-gate').hidden = true;
-      $('#app-main').hidden = false;
-      startAdmin(true);
-    }
-  } catch {}
-});
-</script>
+
+    initAdminPeer();
+    setInterval(() => {
+      updatePeerCount();
+    }, 3000);
+  </script>
 </body>
 </html>

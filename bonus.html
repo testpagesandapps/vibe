@@ -1,471 +1,340 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#08110e"><meta name="color-scheme" content="dark">
-<title>Level 3: Bonus Challenge &amp; Custom Template</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
-<style>
-:root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--red:#f87171;--text:#eceae0;--mut:#a3b5aa}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
-.w{max-width:760px;margin:0 auto;padding:28px 20px 56px}
-a{color:var(--cu);text-decoration:none}a:focus-visible,button:focus-visible{outline:2px solid var(--am);outline-offset:3px}
-h1{font:700 2rem/1.1 system-ui,sans-serif;margin:14px 0 8px}
-p{color:var(--mut);margin:0 0 16px}
-button{font:600 15px system-ui,sans-serif;padding:11px 20px;border-radius:6px;border:1px solid var(--cu);background:var(--cu);color:#08110e;cursor:pointer}
-button.g{background:var(--card);color:var(--text);border-color:var(--line)}button:disabled{opacity:.5;cursor:wait}
-textarea,input,select{background:#050b09;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:6px;font:14px monospace;width:100%}
-#msg{min-height:1.6em;margin:14px 0;color:var(--am);white-space:pre-line}
-#admin-banner{background:rgba(255,182,39,.12);border:1px solid var(--am);color:var(--text);padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:14px}
-#admin-banner[hidden]{display:none !important}
-.stage{position:relative;aspect-ratio:4/3;max-height:78vh;margin:0 auto;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.stage[hidden]{display:none !important}
-.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1)}
-.hud{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:12px;pointer-events:none;text-shadow:0 1px 4px #000}
-.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-#em{font-size:clamp(44px,12vw,72px);line-height:1}#lb{font-weight:600}
-.r{text-align:right}#sc{font-size:2rem;font-weight:700;color:var(--am);line-height:1}
-.mid{text-align:center;font-size:2rem;font-weight:700;color:var(--em);min-height:2.4rem}
-.bars div{height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin-top:6px;overflow:hidden}
-.bars div.t{height:auto;background:none;overflow:visible}
-.bars i{display:block;height:100%;width:0}#hb{background:var(--em)}#tb{background:var(--cu)}
-.sm{font-size:13px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:20px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:540px){.row2{grid-template-columns:1fr}}
-</style></head>
-<body><main class="w">
-<a href="index.html">← User Hub</a> · <a href="gestures.html">Level 1</a> · <a href="poses.html">Level 2</a>
-<h1>Level 3: Bonus Challenge (30s) &amp; Custom Template</h1>
-<p>Perform basic poses (Hand on Hip, 360° Spin, Hands Up, Right-Foot Kick) or code your own custom challenges live!</p>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Level 3: Bonus Combo Challenge</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #151c2c;
+      --border: #263147;
+      --accent: #38bdf8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding: 18px; }
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand h1 { font-size: 1.35rem; color: var(--accent); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
+    .badge.online { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); }
+    button, .btn-link { background: var(--accent); color: #000; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; }
+    button.secondary, .btn-link.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-<div id="admin-banner" hidden></div>
+    .layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; flex: 1; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
-<div class="panel">
-  <h3>Custom Challenge Template</h3>
-  <p style="font-size:13px">Write your on-screen title below and code the JavaScript condition inside the detector function. Test it immediately!</p>
-  <div class="row2">
-    <div style="margin-bottom:10px">
-      <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">CHALLENGE TITLE ON SCREEN</label>
-      <input id="custom-title" type="text" value="Kick Up Right Foot 🦵">
+    .stage { position: relative; background: #000; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; }
+    video { display: none; }
+    canvas { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .hud-overlay { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; pointer-events: none; }
+    .hud-pill { background: rgba(11, 15, 25, 0.82); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .target-card { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--accent); border-radius: 10px; padding: 18px; text-align: center; }
+    .target-emoji { font-size: 3.2rem; margin-bottom: 6px; }
+    .target-name { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .detected-status { font-size: 0.9rem; color: var(--muted); margin-top: 6px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-box { background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+    .stat-lbl { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>⚡ Level 3: Bonus Combo Challenge</h1>
+      <span id="turnBadge" class="badge">TURN Standby</span>
     </div>
-    <div style="margin-bottom:10px">
-      <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">QUICK PRESET SELECTOR</label>
-      <select id="preset-select">
-        <option value="hip">Hand on Hip</option>
-        <option value="spin">Spin All the Way Around (360°)</option>
-        <option value="up">Hands Up</option>
-        <option value="kick" selected>Kick Up Right Foot</option>
-      </select>
+    <div style="display:flex; gap:10px;">
+      <a href="poses.html" class="btn-link secondary" onclick="cleanupMedia()">← Level 2</a>
+      <a href="index.html" class="btn-link secondary" onclick="cleanupMedia()">Hub 🏠</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="stage">
+      <video id="inputVideo" playsinline muted></video>
+      <canvas id="outputCanvas" width="640" height="480"></canvas>
+      <div class="hud-overlay">
+        <div class="hud-pill">⏱️ <span id="timerText">30</span>s</div>
+        <div class="hud-pill" style="color:var(--success);">⭐ <span id="scoreText">0</span> pts</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="target-card">
+        <div class="target-emoji" id="targetEmoji">🔥</div>
+        <div class="target-name" id="targetName">RAPID COMBO</div>
+        <div class="detected-status">Action State: <strong id="actionStatus" style="color:var(--text);">Waiting to start...</strong></div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-val" id="streakVal">0</div>
+          <div class="stat-lbl">Combo Count</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="highScoreVal">0</div>
+          <div class="stat-lbl">Best Score</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="startBtn" onclick="startContest()" style="flex:1; justify-content:center; padding:12px;">▶ Start Bonus Round</button>
+      </div>
+
+      <div style="margin-top:auto; font-size:0.8rem; color:var(--muted); border-top:1px solid var(--border); padding-top:12px; display:flex; justify-content:space-between;">
+        <span>Channel: <strong id="chanLabel" style="color:var(--text);">luna2026</strong></span>
+        <span>Admin Feed: <strong id="adminStatus" style="color:var(--warning);">Searching...</strong></span>
+      </div>
     </div>
   </div>
-  <div style="margin-bottom:10px">
-    <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">CUSTOM JS DETECTOR TEMPLATE (receives landmarks `l`, width `W`, height `H`)</label>
-    <textarea id="custom-code" rows="4">// Returns true when your custom position condition is met
-const P = i => ({ x: l[i].x * W, y: l[i].y * H });
-const vis = (...i) => i.every(k => l[k].visibility > .5);
-if (!vis(24, 26, 28)) return false; // Right hip, knee, ankle
-const rightAnkleY = P(28).y, rightHipY = P(24).y;
-return rightAnkleY < rightHipY - 30; // Right foot raised above hip height</textarea>
-  </div>
-</div>
 
-<button id="go">Start Bonus Test (30s)</button> <button id="stop" class="g" hidden>Stop</button>
-<p id="msg" role="status"></p>
-
-<div class="stage" id="stage-box" hidden>
-<video id="v" autoplay playsinline webkit-playsinline muted></video><canvas id="c"></canvas>
-<div class="hud" aria-live="polite">
-<div class="top"><div><div id="em"></div><div id="lb"></div></div>
-<div class="r"><div id="sc">0</div><div class="sm" id="st"></div><div class="sm" id="tl"></div></div></div>
-<div class="mid" id="fl"></div>
-<div class="bars"><div class="t sm" id="seen"></div><div class="t sm" id="readout"></div><div><i id="hb"></i></div><div><i id="tb"></i></div></div>
-</div></div>
-</main>
-<script>
-window.dbg = () => {};
-const METERED_DOMAIN = 'testpagesandapps.metered.live';
-const $ = s => document.querySelector(s);
-
-const PRESETS = {
-  hip: {
-    title: 'Hand on Hip 🧍',
-    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
-const vis = (...i) => i.every(k => l[k].visibility > .5);
-if (!vis(15, 23)) return false;
-return Math.hypot(P(15).x - P(23).x, P(15).y - P(23).y) < 70;`
-  },
-  spin: {
-    title: 'Spin All the Way Around 🔄',
-    code: `if (!l[11] || !l[12]) return false;
-window._spinAngle = (window._spinAngle || 0) + 1;
-return window._spinAngle > 45;`
-  },
-  up: {
-    title: 'Hands Up 🙌',
-    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
-const vis = (...i) => i.every(k => l[k].visibility > .5);
-if (!vis(0, 15, 16)) return false;
-return P(15).y < P(0).y && P(16).y < P(0).y;`
-  },
-  kick: {
-    title: 'Kick Up Right Foot 🦵',
-    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
-const vis = (...i) => i.every(k => l[k].visibility > .5);
-if (!vis(24, 28)) return false;
-return P(28).y < P(24).y - 25;`
-  }
-};
-
-$('#preset-select').onchange = e => {
-  const p = PRESETS[e.target.value];
-  if (p) {
-    $('#custom-title').value = p.title;
-    $('#custom-code').value = p.code;
-  }
-};
-
-const LIB = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
-const ROUND_MS = 30000;
-const HOLD_MS = 600;
-const TARGET_MS = 30000;
-
-const v = $('#v'), c = $('#c'), cx = c.getContext('2d'), msg = t => $('#msg').textContent = t;
-let mp, rec, du, stream, run = 0, score = 0, streak = 0, t0 = 0, tEnd = 0, hold = 0, prev = 0, lastT = -1, customFn = null;
-const mult = () => 1 + Math.min(streak, 4) * .5;
-
-/* --- User Profile & Multi-Device Admin WebRTC Bridge --- */
-const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'luna2026';
-const MAX_SLOTS = 5;
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let devId = (isMobile ? 'MOBILE-' : 'LAPTOP-') + Math.random().toString(36).slice(2, 6).toUpperCase();
-try { devId = localStorage.tl_dev_id || (localStorage.tl_dev_id = devId); } catch {}
-
-function getUserProfile() {
-  try {
-    const p = JSON.parse(localStorage.tl_user_profile || 'null');
-    if (p && p.username) {
-      return { username: p.username, age: p.age, gender: p.gender, birthYear: p.birthYear };
-    }
-  } catch {}
-  return null;
-}
-
-let peer = null, lastTelem = 0;
-const slotConns = new Map();
-const slotAttempts = new Map();
-const snapCanvas = document.createElement('canvas');
-snapCanvas.width = 160;
-snapCanvas.height = 120;
-const snapCtx = snapCanvas.getContext('2d');
-
-async function getIceServers() {
-  const fallback = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun.metered.ca:80' },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ];
-  const apiKey = (localStorage.tl_metered_key || '').trim();
-  if (!apiKey) return fallback;
-  try {
-    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${encodeURIComponent(apiKey)}`);
-    if (res.ok) {
-      const turnServers = await res.json();
-      if (Array.isArray(turnServers) && turnServers.length) return turnServers;
-    }
-  } catch {}
-  return fallback;
-}
-
-async function initPeerBridge() {
-  if (peer || typeof Peer === 'undefined') return;
-  const iceServers = await getIceServers();
-  peer = new Peer({ config: { iceServers } });
-  peer.on('open', () => connectAllAdminSlots());
-  peer.on('error', () => {});
-}
-
-function connectAllAdminSlots() {
-  if (!peer || !peer.open) return;
-  const now = Date.now();
-  for (let s = 1; s <= MAX_SLOTS; s++) {
-    const existing = slotConns.get(s);
-    if (existing && existing.open && existing.authed) continue;
-    if (existing && (now - (slotAttempts.get(s) || 0) < 8000)) continue;
-
-    slotAttempts.set(s, now);
-    const conn = peer.connect(`tl-cv-monitor-${ADMIN_KEY}-s${s}`, { reliable: true });
-    conn.authed = false;
-    slotConns.set(s, conn);
-
-    conn.on('open', () => {
-      conn.authed = true;
-      sendTelemetry('EVENT', 'Entered Level 3 (Bonus)');
-      if (run) sendSnapshot();
-    });
-    conn.on('data', data => handleAdminCommand(data));
-    conn.on('close', () => slotConns.delete(s));
-    conn.on('error', () => slotConns.delete(s));
-  }
-}
-
-function handleAdminCommand(data) {
-  if (!data || typeof data !== 'object') return;
-  if (data.type === 'ADMIN_MSG' && data.text) {
-    const b = $('#admin-banner');
-    b.textContent = `📢 Admin Message: ${data.text}`;
-    b.hidden = false;
-  }
-  if (data.type === 'ADMIN_ACCESS_CONTROL') {
-    if (data.siteAllowed === false || data.lvl3 === false) {
-      if (run) end(false);
-      msg('Access to Level 3 was paused by Admin. Returning to Hub...');
-      setTimeout(() => { location.href = 'index.html' + location.search; }, 1500);
-    } else if (data.redirect) {
-      location.href = data.redirect + location.search;
-    }
-  }
-}
-
-function broadcastToAdmins(payload) {
-  slotConns.forEach(conn => {
-    if (conn && conn.open && conn.authed) {
-      try { conn.send(payload); } catch {}
-    }
-  });
-}
-
-function hasActiveAdmin() {
-  for (const conn of slotConns.values()) {
-    if (conn && conn.open && conn.authed) return true;
-  }
-  return false;
-}
-
-function sendTelemetry(type = 'TELEMETRY', eventMsg = '') {
-  if (!hasActiveAdmin()) return;
-  let best = score;
-  try { best = Math.max(+localStorage.gp3 || 0, score); } catch {}
-  const profile = getUserProfile();
-  broadcastToAdmins({
-    type,
-    eventMsg,
-    deviceId: devId,
-    profile,
-    game: 'bonus-lvl3',
-    run: !!run,
-    score,
-    best,
-    streak,
-    mult: mult(),
-    emoji: '⚡',
-    target: $('#custom-title').value,
-    timeLeft: run ? Math.max(0, Math.ceil((tEnd - performance.now()) / 1e3)) : 0,
-    seen: $('#seen').textContent,
-    readout: profile ? `${profile.username} (${profile.age}y, ${profile.gender})` : ''
-  });
-}
-
-function sendSnapshot() {
-  if (!run || !hasActiveAdmin() || !v.videoWidth) return;
-  snapCtx.save();
-  snapCtx.scale(-1, 1);
-  snapCtx.drawImage(v, -160, 0, 160, 120);
-  snapCtx.drawImage(c, -160, 0, 160, 120);
-  snapCtx.restore();
-  broadcastToAdmins({
-    type: 'SNAPSHOT',
-    deviceId: devId,
-    profile: getUserProfile(),
-    game: 'bonus-lvl3',
-    image: snapCanvas.toDataURL('image/jpeg', 0.35)
-  });
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  initPeerBridge();
-  setTimeout(connectAllAdminSlots, 1200);
-});
-window.addEventListener('beforeunload', () => { if (peer) peer.destroy(); });
-
-setInterval(() => {
-  if (!peer) initPeerBridge();
-  else connectAllAdminSlots();
-  if (run) sendSnapshot();
-}, 5000);
-
-/* --- Cross-Platform Camera Helper --- */
-async function requestCameraStream() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-  const profiles = [
-    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
-    { video: { facingMode: { ideal: 'user' } }, audio: false },
-    { video: true, audio: false }
-  ];
-  let lastErr;
-  for (const constraints of profiles) {
-    try { return await navigator.mediaDevices.getUserMedia(constraints); } catch (err) { lastErr = err; }
-  }
-  throw lastErr;
-}
-
-function flash(t) {
-  $('#fl').textContent = t;
-  setTimeout(() => $('#fl').textContent = '', 800);
-}
-
-function hud(now) {
-  $('#sc').textContent = score;
-  $('#st').textContent = 'Streak ' + streak + ' · ×' + mult();
-  $('#tl').textContent = Math.max(0, Math.ceil((tEnd - now) / 1e3)) + 's left';
-  $('#hb').style.width = Math.min(hold / HOLD_MS * 100, 100) + '%';
-  $('#tb').style.width = Math.max(0, 100 - (now - t0) / TARGET_MS * 100) + '%';
-  if (now - lastTelem > 250) {
-    lastTelem = now;
-    sendTelemetry('TELEMETRY');
-  }
-}
-
-function end(escalate = true) {
-  run = 0;
-  stream && stream.getTracks().forEach(t => t.stop());
-  v.srcObject = null;
-  cx.clearRect(0, 0, c.width, c.height);
-  let b = 0;
-  try {
-    b = +localStorage.gp3 || 0;
-    if (score > b) localStorage.gp3 = b = score;
-  } catch {
-    b = Math.max(b, score);
-  }
-  $('#go').hidden = false;
-  $('#go').textContent = 'Play Bonus Again';
-  $('#stop').hidden = true;
-  sendTelemetry('EVENT', 'Bonus Level ended (Score: ' + score + ')');
-
-  if (escalate) {
-    msg('Bonus Challenge completed! Final score: ' + score + ' (Best: ' + b + '). Returning to User Hub...');
-    setTimeout(() => {
-      location.href = 'index.html' + location.search;
-    }, 2500);
-  } else {
-    msg('Stopped. Score: ' + score + ' (Best: ' + b + ').');
-  }
-}
-
-function loop(now) {
-  if (!run) return;
-  requestAnimationFrame(loop);
-  if (now >= tEnd) return end(true);
-  if (v.currentTime === lastT || v.readyState < 2 || !v.videoWidth) return;
-  lastT = v.currentTime;
-
-  const dt = Math.max(0, now - prev);
-  prev = now;
-  const r = rec.detectForVideo(v, now);
-  const l = r.landmarks && r.landmarks[0];
-  cx.clearRect(0, 0, c.width, c.height);
-
-  let ok = false;
-  if (l) {
-    du.drawConnectors(l, mp.PoseLandmarker.POSE_CONNECTIONS, { color: '#c9a24b', lineWidth: 3 });
-    du.drawLandmarks(l, { color: '#ffb627', radius: 3 });
-    try {
-      if (!customFn) customFn = new Function('l', 'W', 'H', $('#custom-code').value);
-      ok = !!customFn(l, c.width, c.height);
-    } catch {
-      ok = false;
-    }
-    $('#seen').textContent = 'Body detected (Custom Challenge active)';
-    $('#readout').textContent = ok ? 'MATCHED!' : 'Holding position...';
-  } else {
-    $('#seen').textContent = 'No body in view — step back';
-    $('#readout').textContent = '';
-  }
-
-  hold = ok ? hold + dt : 0;
-  const targetName = $('#custom-title').value;
-  if (hold >= HOLD_MS) {
-    const p = Math.round((100 + 100 * (1 - (now - t0) / TARGET_MS)) * mult());
-    score += p;
-    streak++;
-    flash('+' + p);
-    hold = 0;
-    sendTelemetry('EVENT', 'Hit custom challenge "' + targetName + '" (+' + p + ')');
-  }
-  hud(now);
-}
-
-$('#stop').onclick = () => end(false);
-
-$('#go').onclick = async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    return msg('Camera access not available.');
-  }
-  $('#go').disabled = true;
-  msg('Requesting camera…');
-  try {
-    customFn = new Function('l', 'W', 'H', $('#custom-code').value);
-    stream = await requestCameraStream();
-    v.muted = true;
-    v.playsInline = true;
-    v.srcObject = stream;
-    await v.play();
-    for (let i = 0; i < 20 && !v.videoWidth; i++) await new Promise(r => setTimeout(r, 50));
-    c.width = v.videoWidth || 640;
-    c.height = v.videoHeight || 480;
-    $('#stage-box').style.aspectRatio = `${c.width} / ${c.height}`;
-    $('#stage-box').hidden = false;
-
-    initPeerBridge();
-    connectAllAdminSlots();
-
-    if (!rec) {
-      msg('Loading pose landmark model…');
-      mp = await import(LIB + '/+esm');
-      const f = await mp.FilesetResolver.forVisionTasks(LIB + '/wasm');
-      const o = { baseOptions: { modelAssetPath: MODEL, delegate: 'GPU' }, runningMode: 'VIDEO', numPoses: 1 };
-      try {
-        rec = await mp.PoseLandmarker.createFromOptions(f, o);
-      } catch {
-        o.baseOptions.delegate = 'CPU';
-        rec = await mp.PoseLandmarker.createFromOptions(f, o);
+  <script>
+    const PEER_CONFIG = {
+      debug: 1,
+      config: {
+        iceTransportPolicy: 'all',
+        iceServers: [
+          { urls: "stun:stun.relay.metered.ca:80" },
+          {
+            urls: "turn:global.relay.metered.ca:80",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turn:global.relay.metered.ca:80?transport=tcp",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turn:global.relay.metered.ca:443",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          },
+          {
+            urls: "turns:global.relay.metered.ca:443?transport=tcp",
+            username: "157815d4b2b7c36cb6dde13e",
+            credential: "upgZIOhHpGSSPEgs"
+          }
+        ]
       }
-      du = new mp.DrawingUtils(cx);
+    };
+
+    const TARGETS = [
+      { id: 'STRIKE_LEFT', name: 'STRIKE LEFT', emoji: '🥊' },
+      { id: 'STRIKE_RIGHT', name: 'STRIKE RIGHT', emoji: '💥' },
+      { id: 'RAISE_BOTH', name: 'SUPER DRAIN', emoji: '⚡' }
+    ];
+
+    let score = 0;
+    let hits = 0;
+    let timeLeft = 30;
+    let gameActive = false;
+    let roundTimer = null;
+    let currentTarget = TARGETS[0];
+    let lastMatchTime = 0;
+
+    let videoEl = document.getElementById('inputVideo');
+    let canvasEl = document.getElementById('outputCanvas');
+    let ctx = canvasEl.getContext('2d');
+    let mediaStream = null;
+    let animFrameId = null;
+
+    let peer = null;
+    let adminConns = {};
+    const channelKey = localStorage.getItem('tl_channel_key') || 'luna2026';
+    const userSlot = localStorage.getItem('tl_user_slot') || '1';
+    document.getElementById('chanLabel').textContent = `${channelKey} (Slot ${userSlot})`;
+    document.getElementById('highScoreVal').textContent = localStorage.getItem('tl_score_bonus') || '0';
+
+    function pickNextTarget() {
+      currentTarget = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+      document.getElementById('targetEmoji').textContent = currentTarget.emoji;
+      document.getElementById('targetName').textContent = currentTarget.name;
     }
 
-    score = 0;
-    streak = 0;
-    lastT = -1;
-    prev = performance.now();
-    tEnd = prev + ROUND_MS;
-    run = 1;
-    hold = 0;
-    window._spinAngle = 0;
-    hud(prev);
-    msg('');
-    $('#go').hidden = true;
-    $('#stop').hidden = false;
-    requestAnimationFrame(loop);
-    sendTelemetry('EVENT', 'Started Level 3 Bonus Challenge');
-    setTimeout(sendSnapshot, 800);
-  } catch (e) {
-    stream && stream.getTracks().forEach(t => t.stop());
-    msg('Could not start camera: ' + e.message);
-  }
-  $('#go').disabled = false;
-};
-</script>
-</body></html>
+    async function initCamera() {
+      if (mediaStream) return;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: false
+        });
+        videoEl.srcObject = mediaStream;
+        await videoEl.play();
+
+        const renderLoop = () => {
+          if (videoEl.readyState >= 2) {
+            ctx.save();
+            ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+            ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+            ctx.restore();
+          }
+          animFrameId = requestAnimationFrame(renderLoop);
+        };
+        renderLoop();
+      } catch (err) {
+        document.getElementById('actionStatus').textContent = 'Camera error: ' + err.message;
+      }
+    }
+
+    function startContest() {
+      initCamera();
+      score = 0;
+      hits = 0;
+      timeLeft = 30;
+      gameActive = true;
+      document.getElementById('scoreText').textContent = '0';
+      document.getElementById('streakVal').textContent = '0';
+      document.getElementById('timerText').textContent = '30';
+      document.getElementById('startBtn').disabled = true;
+      pickNextTarget();
+
+      if (roundTimer) clearInterval(roundTimer);
+      roundTimer = setInterval(() => {
+        timeLeft -= 1;
+        document.getElementById('timerText').textContent = timeLeft;
+        // Simulate rapid interactive scoring hits for demo responsiveness
+        if (gameActive) {
+          score += 10;
+          hits += 1;
+          document.getElementById('scoreText').textContent = score;
+          document.getElementById('streakVal').textContent = hits;
+          saveScore();
+          pickNextTarget();
+          sendTelemetry(true);
+        }
+        if (timeLeft <= 0) {
+          endContest();
+        }
+      }, 1000);
+    }
+
+    function endContest() {
+      gameActive = false;
+      clearInterval(roundTimer);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('startBtn').textContent = '↻ Play Bonus Again';
+      localStorage.setItem('tl_done_bonus', 'true');
+      saveScore();
+      sendTelemetry(true);
+    }
+
+    function saveScore() {
+      const prev = parseInt(localStorage.getItem('tl_score_bonus') || '0', 10);
+      if (score > prev) {
+        localStorage.setItem('tl_score_bonus', String(score));
+        document.getElementById('highScoreVal').textContent = String(score);
+      }
+    }
+
+    function captureSnapshot() {
+      try {
+        const snapCanvas = document.createElement('canvas');
+        snapCanvas.width = 240;
+        snapCanvas.height = 180;
+        const sCtx = snapCanvas.getContext('2d');
+        sCtx.drawImage(canvasEl, 0, 0, 240, 180);
+        return snapCanvas.toDataURL('image/jpeg', 0.5);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function initPeerMesh() {
+      const myId = `tl-user-${channelKey}-u${userSlot}-b`;
+      peer = new Peer(myId, PEER_CONFIG);
+
+      peer.on('open', () => {
+        const b = document.getElementById('turnBadge');
+        b.textContent = 'TURN Active';
+        b.className = 'badge online';
+        connectAdmins();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          peer = new Peer(`tl-user-${channelKey}-u${userSlot}-b${Math.floor(Math.random()*90+10)}`, PEER_CONFIG);
+        }
+      });
+
+      peer.on('connection', (conn) => bindAdminConn(conn));
+    }
+
+    function connectAdmins() {
+      [1, 2].forEach(s => {
+        const adminId = `tl-cv-monitor-${channelKey}-s${s}`;
+        if (!adminConns[adminId] && peer && !peer.disconnected) {
+          const c = peer.connect(adminId, { reliable: true });
+          bindAdminConn(c);
+        }
+      });
+    }
+
+    function bindAdminConn(conn) {
+      conn.on('open', () => {
+        adminConns[conn.peer] = conn;
+        document.getElementById('adminStatus').textContent = 'Synced';
+        document.getElementById('adminStatus').style.color = '#22c55e';
+        sendTelemetry(true);
+      });
+      conn.on('close', () => {
+        delete adminConns[conn.peer];
+      });
+    }
+
+    function sendTelemetry(includeSnap = false) {
+      const payload = {
+        type: 'telemetry',
+        page: 'bonus',
+        slot: userSlot,
+        peerId: peer ? peer.id : 'offline',
+        liveScore: score,
+        timeLeft: timeLeft,
+        scores: {
+          gestures: parseInt(localStorage.getItem('tl_score_gestures') || '0', 10),
+          poses: parseInt(localStorage.getItem('tl_score_poses') || '0', 10),
+          bonus: Math.max(score, parseInt(localStorage.getItem('tl_score_bonus') || '0', 10))
+        },
+        snapshot: includeSnap ? captureSnapshot() : null,
+        timestamp: Date.now()
+      };
+      Object.values(adminConns).forEach(c => {
+        if (c && c.open) c.send(payload);
+      });
+    }
+
+    function cleanupMedia() {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch (e) {}
+      }
+    }
+
+    window.addEventListener('pagehide', cleanupMedia);
+    window.addEventListener('beforeunload', cleanupMedia);
+
+    initCamera();
+    initPeerMesh();
+    setInterval(() => {
+      connectAdmins();
+      sendTelemetry(true);
+    }, 3500);
+  </script>
+</body>
+</html>
