@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08110e"><meta name="color-scheme" content="dark">
+<title>Level 3: Bonus Challenge &amp; Custom Template — Tyler Lacy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js">try{delete sessionStorage.tl_auto}catch{}
+</script>
+<style>
+:root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--text:#eceae0;--mut:#a3b5aa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:760px;margin:0 auto;padding:28px 20px 56px}
+a{color:var(--cu)}a:focus-visible,button:focus-visible{outline:2px solid var(--am);outline-offset:3px}
+h1{font:700 2rem/1.1 system-ui,sans-serif;margin:14px 0 8px}
+p{color:var(--mut);margin:0 0 16px}
+button{font:600 15px system-ui,sans-serif;padding:11px 20px;border-radius:6px;border:1px solid var(--cu);background:var(--cu);color:#08110e;cursor:pointer}
+button.g{background:var(--card);color:var(--text);border-color:var(--line)}button:disabled{opacity:.5;cursor:wait}
+textarea,input,select{background:#050b09;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:6px;font:14px monospace;width:100%}
+#msg{min-height:1.6em;margin:14px 0;color:var(--am);white-space:pre-line}
+.stage{position:relative;aspect-ratio:4/3;max-height:78vh;margin:0 auto;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scaleX(-1)}
+.hud{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:12px;pointer-events:none;text-shadow:0 1px 4px #000}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+#em{font-size:clamp(44px,12vw,72px);line-height:1}#lb{font-weight:600}
+.r{text-align:right}#sc{font-size:2rem;font-weight:700;color:var(--am);line-height:1}
+.mid{text-align:center;font-size:2rem;font-weight:700;color:var(--em);min-height:2.4rem}
+.bars div{height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin-top:6px;overflow:hidden}
+.bars div.t{height:auto;background:none;overflow:visible}
+.bars i{display:block;height:100%;width:0}#hb{background:var(--em)}#tb{background:var(--cu)}
+.sm{font-size:13px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:20px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:540px){.row2{grid-template-columns:1fr}}
+</style></head>
+<body><main class="w">
+<a href="index.html">← User Hub</a> · <a href="gestures.html">Level 1</a> · <a href="poses.html">Level 2</a>
+<h1>Level 3: Bonus Challenge (30s) &amp; Custom Template</h1>
+<p>Speed contest: complete your challenge 3 times as fast as you can (30s cap). Perform basic poses (Hand on Hip, Spin All the Way Around, Hands Up, Kick Up Right Foot) or fill in the template below to code and test your own custom challenges live!</p>
+
+<div class="panel">
+  <h3>Custom Challenge Template</h3>
+  <p style="font-size:13px">Write your on-screen title below and code the JavaScript condition inside the detector function. Test it immediately!</p>
+  <div class="row2">
+    <div style="margin-bottom:10px">
+      <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">CHALLENGE TITLE ON SCREEN</label>
+      <input id="custom-title" type="text" value="Kick Up Right Foot 🦵">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">QUICK PRESET SELECTOR</label>
+      <select id="preset-select">
+        <option value="hip">Hand on Hip</option>
+        <option value="spin">Spin All the Way Around (360°)</option>
+        <option value="up">Hands Up</option>
+        <option value="kick" selected>Kick Up Right Foot</option>
+      </select>
+    </div>
+  </div>
+  <div style="margin-bottom:10px">
+    <label style="font:600 12px monospace;color:var(--cu);display:block;margin-bottom:4px">CUSTOM JS DETECTOR TEMPLATE (receives landmarks `l`, width `W`, height `H`)</label>
+    <textarea id="custom-code" rows="4">// Returns true when your custom position condition is met
+const P = i => ({ x: l[i].x * W, y: l[i].y * H });
+const vis = (...i) => i.every(k => l[k].visibility > .5);
+if (!vis(24, 26, 28)) return false; // Right hip, knee, ankle
+const rightAnkleY = P(28).y, rightHipY = P(24).y;
+return rightAnkleY < rightHipY - 30; // Right foot raised above hip height</textarea>
+  </div>
+</div>
+
+<button id="go">Start Bonus 30s Test</button> <button id="stop" class="g" hidden>Stop</button>
+<p id="msg" role="status"></p>
+
+<div class="stage" id="stage-box" hidden>
+<video id="v" autoplay playsinline webkit-playsinline muted></video><canvas id="c"></canvas>
+<div class="hud" aria-live="polite">
+<div class="top"><div><div id="em"></div><div id="lb"></div></div>
+<div class="r"><div id="sc">0</div><div class="sm" id="st"></div><div class="sm" id="tl"></div></div></div>
+<div class="mid" id="fl"></div>
+<div class="bars"><div class="t sm" id="seen"></div><div class="t sm" id="readout"></div><div><i id="hb"></i></div><div><i id="tb"></i></div></div>
+</div></div>
+</main>
+<script>
+window.dbg=()=>{};
+const $=s=>document.querySelector(s);
+
+const PRESETS = {
+  hip: {
+    title: 'Hand on Hip 🧍',
+    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
+const vis = (...i) => i.every(k => l[k].visibility > .5);
+if (!vis(15, 23)) return false;
+// Left wrist near left hip
+return Math.hypot(P(15).x - P(23).x, P(15).y - P(23).y) < 70;`
+  },
+  spin: {
+    title: 'Spin All the Way Around 🔄',
+    code: `// Tracks the shoulder-line angle in the x/z plane and accumulates a full ~360 turn
+const vis = (...i) => i.every(k => l[k].visibility > .5);
+if (!vis(11, 12)) return false;
+const now = performance.now();
+const s = window._spin || (window._spin = { last: null, total: 0, start: 0, doneAt: 0 });
+if (s.doneAt && now - s.doneAt < 800) return true; // keep matching briefly so it scores
+if (s.doneAt) { s.doneAt = 0; s.total = 0; s.last = null; s.start = 0; }
+if (!s.start || now - s.start > 6000) { s.start = now; s.total = 0; s.last = null; } // must finish within 6s
+const a = Math.atan2(l[12].z - l[11].z, l[12].x - l[11].x);
+if (s.last !== null) {
+  let d = a - s.last;
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d < -Math.PI) d += 2 * Math.PI;
+  s.total += d;
+}
+s.last = a;
+if (Math.abs(s.total) >= 5.8) { s.doneAt = now; return true; } // ~332 degrees
+return false;`
+  },
+  up: {
+    title: 'Hands Up 🙌',
+    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
+const vis = (...i) => i.every(k => l[k].visibility > .5);
+if (!vis(0, 15, 16)) return false;
+return P(15).y < P(0).y && P(16).y < P(0).y;`
+  },
+  kick: {
+    title: 'Kick Up Right Foot 🦵',
+    code: `const P = i => ({ x: l[i].x * W, y: l[i].y * H });
+const vis = (...i) => i.every(k => l[k].visibility > .5);
+if (!vis(24, 28)) return false;
+return P(28).y < P(24).y - 25;`
+  }
+};
+
+$('#preset-select').onchange = e => {
+  const p = PRESETS[e.target.value];
+  if (p) {
+    $('#custom-title').value = p.title;
+    $('#custom-code').value = p.code;
+  }
+};
+
+const LIB='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14',MODEL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const TL=3e4,HOLD=600,TOTAL=3e4,REPS=3,BASE=100;
+const v=$('#v'),c=$('#c'),cx=c.getContext('2d'),msg=t=>$('#msg').textContent=t;
+let mp,rec,du,stream,run=0,score=0,streak=0,t0=0,tEnd=0,hold=0,prev=0,lastT=-1,customFn=null,hits=0,tStart=0;
+const mult=()=>1;
+/* --- Level progression (per user, stored locally) --- */
+const LEVEL=3;
+const progKey=()=>{try{const u=JSON.parse(localStorage.tl_user_profile||'null');return 'tl_prog_'+(u&&u.username?u.username.toLowerCase():'guest')}catch{return 'tl_prog_guest'}};
+const getProg=()=>{try{return +localStorage[progKey()]||1}catch{return 1}};
+const setProg=n=>{try{if(n>getProg())localStorage[progKey()]=n}catch{}};
+(()=>{let lockedByAdmin=false;try{lockedByAdmin=JSON.parse(localStorage.tl_access_state||'{}')['lvl'+LEVEL]===false}catch{}
+ if(getProg()<LEVEL||lockedByAdmin)location.replace('index.html'+location.search)})();
+
+
+/* --- Multi-Device Authenticated Admin WebRTC Bridge (Slots 1..5) --- */
+const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'luna2026';
+const MAX_SLOTS = 5;
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let devId = (isMobile ? 'MOBILE-' : 'LAPTOP-') + Math.random().toString(36).slice(2, 6).toUpperCase();
+try { devId = localStorage.tl_dev_id || (localStorage.tl_dev_id = devId); } catch {}
+
+let peer = null, lastTelem = 0;
+const slotConns = new Map();
+const slotAttempts = new Map();
+const snapCanvas = document.createElement('canvas');
+snapCanvas.width = 160;
+snapCanvas.height = 120;
+const snapCtx = snapCanvas.getContext('2d');
+
+function initPeerBridge() {
+  if (peer || typeof Peer === 'undefined') return;
+  peer = new Peer({
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    }
+  });
+  peer.on('open', () => connectAllAdminSlots());
+  peer.on('error', () => {});
+}
+
+function connectAllAdminSlots() {
+  if (!peer || !peer.open) return;
+  const now = Date.now();
+  for (let s = 1; s <= MAX_SLOTS; s++) {
+    const existing = slotConns.get(s);
+    if (existing && existing.open && existing.authed) continue;
+    if (existing && (now - (slotAttempts.get(s) || 0) < 8000)) continue;
+
+    slotAttempts.set(s, now);
+    const conn = peer.connect(`tl-cv-monitor-${ADMIN_KEY}-s${s}`, { reliable: true });
+    conn.authed = false;
+    slotConns.set(s, conn);
+
+    conn.on('open', () => { conn.authed = true; sendTelemetry('EVENT', 'Connected to Admin'); if (run) sendSnapshot(); });
+    conn.on('close', () => slotConns.delete(s));
+    conn.on('error', () => slotConns.delete(s));
+  }
+}
+
+function broadcastToAdmins(payload) {
+  slotConns.forEach(conn => {
+    if (conn && conn.open && conn.authed) {
+      try { conn.send(payload); } catch {}
+    }
+  });
+}
+
+function hasActiveAdmin() {
+  for (const conn of slotConns.values()) {
+    if (conn && conn.open && conn.authed) return true;
+  }
+  return false;
+}
+
+function sendTelemetry(type = 'TELEMETRY', eventMsg = '') {
+  if (!hasActiveAdmin()) return;
+  let best = score;
+  try { best = Math.max(+localStorage.gp3 || 0, score); } catch {}
+  broadcastToAdmins({
+    type,
+    eventMsg,
+    deviceId: devId,
+    game: 'bonus-lvl3',
+    run: !!run,
+    score,
+    best,
+    streak,
+    mult: mult(),
+    emoji: '⚡',
+    target: $('#custom-title').value,
+    timeLeft: run ? Math.max(0, Math.ceil((tEnd - performance.now()) / 1e3)) : 0,
+    seen: $('#seen').textContent,
+    readout: $('#readout').textContent
+  });
+}
+
+function sendSnapshot() {
+  if (!run || !hasActiveAdmin() || !v.videoWidth) return;
+  snapCtx.save();
+  snapCtx.scale(-1, 1);
+  snapCtx.drawImage(v, -160, 0, 160, 120);
+  snapCtx.drawImage(c, -160, 0, 160, 120);
+  snapCtx.restore();
+  broadcastToAdmins({
+    type: 'SNAPSHOT',
+    deviceId: devId,
+    game: 'bonus-lvl3',
+    image: snapCanvas.toDataURL('image/jpeg', 0.35)
+  });
+}
+
+window.addEventListener('DOMContentLoaded', initPeerBridge);
+window.addEventListener('beforeunload', () => { if (peer) peer.destroy(); });
+
+setInterval(() => {
+  if (!peer) initPeerBridge();
+  else connectAllAdminSlots();
+  if (run) sendSnapshot();
+}, 5000);
+
+/* --- Cross-Platform Camera Helper --- */
+async function requestCameraStream() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  const profiles = [
+    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+    { video: { facingMode: { ideal: 'user' } }, audio: false },
+    { video: true, audio: false }
+  ];
+  let lastErr;
+  for (const constraints of profiles) {
+    try { return await navigator.mediaDevices.getUserMedia(constraints); } catch (err) { lastErr = err; }
+  }
+  throw lastErr;
+}
+
+function flash(t){$('#fl').textContent=t;setTimeout(()=>$('#fl').textContent='',800)}
+function hud(now){
+ $('#sc').textContent=score;$('#st').textContent=hits+' / '+REPS+' reps';$('#tl').textContent=((now-tStart)/1e3).toFixed(1)+'s (cap 30s)';$('#hb').style.width=Math.min(hold/HOLD*100,100)+'%';$('#tb').style.width=Math.max(0,100-(now-tStart)/TL*100)+'%';
+ if(now-lastTelem>250){lastTelem=now;sendTelemetry('TELEMETRY')}
+}
+function end(ok){
+  if(!run)return;
+  run=0;
+  const elapsed=performance.now()-tStart,secs=(elapsed/1e3).toFixed(2);
+  stream&&stream.getTracks().forEach(t=>t.stop());
+  v.srcObject=null;
+  cx.clearRect(0,0,c.width,c.height);
+  if(ok)score+=Math.max(0,Math.round((TL-elapsed)/TL*500));
+  let bt=0;
+  try{
+    const b=+localStorage.gp3||0;if(score>b)localStorage.gp3=score;
+    if(ok){bt=+localStorage.gt3||0;if(!bt||elapsed<bt)localStorage.gt3=bt=Math.round(elapsed)}
+  }catch{}
+  $('#go').hidden=false;$('#go').textContent=ok?'Play again':'Try again';$('#stop').hidden=true;
+  if(ok){
+    msg('Bonus cleared in '+secs+'s! Score '+score+(bt?'. Best time: '+(bt/1e3).toFixed(2)+'s.':'.'));
+    sendTelemetry('EVENT','Bonus cleared in '+secs+'s (score '+score+')');
+  }else{
+    msg('Not cleared ('+hits+'/'+REPS+'). Complete the challenge '+REPS+' times within 30s.');
+    sendTelemetry('EVENT','Bonus failed '+hits+'/'+REPS);
+  }
+}
+function loop(now){
+ if(!run)return;requestAnimationFrame(loop);if(now>=tEnd)return end(false);
+ if(v.currentTime===lastT)return;lastT = v.currentTime; if (v.readyState < 2 || !v.videoWidth) return;
+ const dt=Math.max(0,now-prev);prev=now;const r=rec.detectForVideo(v,now),l=r.landmarks&&r.landmarks[0];
+ cx.clearRect(0,0,c.width,c.height);let ok=false;
+ if(l){
+  du.drawConnectors(l,mp.PoseLandmarker.POSE_CONNECTIONS,{color:'#c9a24b',lineWidth:3});
+  du.drawLandmarks(l,{color:'#ffb627',radius:3});
+  try {
+    if(!customFn) customFn = new Function('l', 'W', 'H', $('#custom-code').value);
+    ok = !!customFn(l, c.width, c.height);
+  } catch(e) { ok = false; }
+  $('#seen').textContent='Body detected (Custom Challenge active)';
+  $('#readout').textContent=ok ? 'MATCHED!' : 'Holding position...';
+ } else {
+  $('#seen').textContent='No body in view — step back';
+  $('#readout').textContent='';
+ }
+ hold=ok?hold+dt:0;
+ const targetName = $('#custom-title').value;
+ if(hold>=HOLD){
+  hits++;streak=hits;score+=BASE;hold=0;flash('✓ '+hits+'/'+REPS);
+  sendTelemetry('EVENT','Hit custom challenge "'+targetName+'" ('+hits+'/'+REPS+')');
+  if(hits>=REPS){hud(now);return end(true)}
+ }
+ hud(now)}
+
+$('#stop').onclick=()=>end(false);
+$('#go').onclick=async()=>{
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return msg('Camera access not available.');
+ $('#go').disabled=true;msg('Requesting camera…');
+ try{
+  customFn = new Function('l', 'W', 'H', $('#custom-code').value);
+  stream=await requestCameraStream();
+  v.muted=true;v.playsInline=true;v.srcObject=stream;
+  await v.play();
+  for (let i = 0; i < 20 && !v.videoWidth; i++) await new Promise(r => setTimeout(r, 50));
+  c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+  $('#stage-box').style.aspectRatio=`${c.width} / ${c.height}`;
+  $('.stage').hidden=false;
+
+  initPeerBridge();
+  connectAllAdminSlots();
+
+  if(!rec){msg('Loading pose model…');mp=await import(LIB+'/+esm');
+   const f=await mp.FilesetResolver.forVisionTasks(LIB+'/wasm'),o={baseOptions:{modelAssetPath:MODEL,delegate:'GPU'},runningMode:'VIDEO',numPoses:1};
+   try{rec=await mp.PoseLandmarker.createFromOptions(f,o)}catch{o.baseOptions.delegate='CPU';rec=await mp.PoseLandmarker.createFromOptions(f,o)}
+   du=new mp.DrawingUtils(cx)}
+  score=0;streak=0;hits=0;lastT=-1;prev=performance.now();tStart=prev;tEnd=prev+TL;run=1;hold=0;window._spin=null;$('#lb').textContent=$('#custom-title').value;hud(prev);msg('');
+  $('#go').hidden=true;$('#stop').hidden=false;requestAnimationFrame(loop);
+  sendTelemetry('EVENT', 'Started Level 3 Bonus Challenge');
+  setTimeout(sendSnapshot, 800);
+ }catch(e){
+  stream&&stream.getTracks().forEach(t=>t.stop());
+  msg('Could not start camera: '+e.message);
+ }
+ $('#go').disabled=false};
+</script>
+</body></html>

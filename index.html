@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08110e">
+<meta name="color-scheme" content="dark">
+<title>Gesture Arena &amp; Live Chat Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
+<style>
+:root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--red:#f87171;--text:#eceae0;--mut:#a3b5aa}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:1040px;margin:0 auto;padding:24px 18px 64px}
+a{color:var(--cu);text-decoration:none}
+h1,h2,h3{margin:0 0 8px;font-family:system-ui,sans-serif}
+p{color:var(--mut);margin:0 0 14px}
+input,select{background:#050b09;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:6px;font:14px system-ui,sans-serif;width:100%}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--am);outline-offset:2px}
+button{font:600 14px system-ui,sans-serif;padding:10px 16px;border-radius:6px;border:1px solid var(--cu);background:var(--cu);color:#08110e;cursor:pointer}
+button.g{background:var(--card);color:var(--text);border-color:var(--line)}
+button.em{background:var(--em);border-color:var(--em);color:#05140e}
+button.red{background:var(--red);border-color:var(--red);color:#1a0505}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Auth / Registration Card */
+.auth-wrap{max-width:440px;margin:40px auto;background:var(--card);border:1px solid var(--cu);border-radius:12px;padding:24px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.field{margin-bottom:12px}
+.field label{display:block;font:600 12px monospace;color:var(--cu);margin-bottom:4px;text-transform:uppercase}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{color:var(--red);font:13px monospace;min-height:1.4em;margin:6px 0}
+
+.lvl-best{font:12px monospace;color:var(--em);min-height:1em}
+.lvl-hint{font:12px monospace;color:var(--am);min-height:1em}
+/* User Hub Layout */
+.topbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:20px}
+.u-badge{display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--em);display:inline-block}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:22px}
+.lvl-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.lvl-card.locked{opacity:.55;border-style:dashed}
+.lvl-tag{font:700 11px monospace;color:var(--am);text-transform:uppercase;letter-spacing:.06em}
+
+.hub-grid{display:grid;grid-template-columns:300px 1fr;gap:16px}
+@media(max-width:780px){.hub-grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.user-list{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto}
+.user-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#08110e;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.user-meta{font-size:12px;color:var(--mut)}
+
+.chat-log{height:300px;overflow-y:auto;background:#050b09;border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{padding:8px 10px;border-radius:6px;background:var(--card);border:1px solid var(--line);font-size:14px}
+.msg.admin{border-color:var(--am);background:rgba(255,182,39,.08)}
+.msg.me{border-color:var(--cu);align-self:flex-end;max-width:85%}
+.msg-head{font:600 11px monospace;color:var(--cu);margin-bottom:2px}
+.msg.admin .msg-head{color:var(--am)}
+.chat-input{display:flex;gap:8px}
+
+/* Video Call Stage */
+.call-box{background:#050b09;border:1px solid var(--cu);border-radius:10px;padding:12px;margin-bottom:16px}
+.v-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.v-grid{grid-template-columns:1fr}}
+.v-wrap{position:relative;aspect-ratio:4/3;background:#000;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.v-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.v-label{position:absolute;bottom:6px;left:8px;background:rgba(0,0,0,.75);padding:2px 8px;border-radius:4px;font:11px monospace}
+
+</style>
+</head>
+<body>
+
+<main class="w">
+  <!-- VIEW 1: LOGIN / REGISTRATION LANDING PAGE -->
+  <section id="auth-view" class="auth-wrap">
+    <div style="font:600 11px monospace;color:var(--cu);letter-spacing:.08em;margin-bottom:4px">WELCOME TO GESTURE ARENA</div>
+    <h1>Create Login or Sign In</h1>
+    <p style="font-size:13px">Register your profile to chat with users, make live video calls, and enter the 3-level 30-second gesture &amp; pose contest.</p>
+
+    <div class="tabs">
+      <button id="tab-reg" type="button">Register Account</button>
+      <button id="tab-login" type="button" class="g">Existing Login</button>
+    </div>
+
+    <form id="auth-form" onsubmit="return false">
+      <div class="field">
+        <label for="f-user">Username</label>
+        <input id="f-user" type="text" required maxlength="24" placeholder="e.g. alex_99" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="f-pass">Password</label>
+        <input id="f-pass" type="password" required maxlength="32" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <div id="reg-extra">
+        <div class="row2">
+          <div class="field">
+            <label for="f-age">Age</label>
+            <input id="f-age" type="number" min="13" max="110" placeholder="21">
+          </div>
+          <div class="field">
+            <label for="f-byear">Birth Year</label>
+            <input id="f-byear" type="number" min="1920" max="2015" placeholder="2005">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-gender">Gender</label>
+          <select id="f-gender">
+            <option value="">Select gender...</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="err" id="auth-err"></div>
+      <button id="auth-submit" type="submit" style="width:100%">Create Account &amp; Enter Hub</button>
+    </form>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:12px">
+      <a href="portfolio.html">← View Portfolio</a>
+      <a href="admin.html">Admin Monitor</a>
+    </div>
+  </section>
+
+  <!-- VIEW 2: USER PAGE (CONTEST LAUNCHER + CHAT + VIDEO CALLS) -->
+  <section id="hub-view" hidden>
+    <div class="topbar">
+      <div class="u-badge">
+        <span class="dot"></span>
+        <div>
+          <strong id="u-name-disp">User</strong>
+          <div style="font:12px monospace;color:var(--mut)" id="u-meta-disp"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="net-pill" style="font:12px monospace;color:var(--am)">Connecting PeerJS...</span>
+        <a href="portfolio.html" class="g" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">Portfolio</a>
+        <a href="admin.html" class="g" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">Admin</a>
+        <button id="logout-btn" class="g" type="button">Log out</button>
+      </div>
+    </div>
+
+    <!-- 3-LEVEL 30-SECOND CONTEST LAUNCHER -->
+    <h2>Gesture &amp; Pose Speed Contest</h2>
+    <p>Start with Level 1. Clear each level within 30 seconds to unlock the next — faster runs score higher.</p>
+    <div class="levels">
+      <div class="lvl-card" id="card-lvl1">
+        <div>
+          <div class="lvl-tag">Level 1 · Speed Race</div>
+          <h3>✋ Hand Gestures</h3>
+          <p style="font-size:13px">Hit all 6 hand gestures as fast as you can (30s cap). Clear it to unlock Level 2.</p>
+          <div class="lvl-best" id="best-lvl1"></div>
+          <div class="lvl-hint" id="hint-lvl1"></div>
+        </div>
+        <button onclick="goToLevel('gestures.html','lvl1')">Start Level 1</button>
+      </div>
+
+      <div class="lvl-card" id="card-lvl2">
+        <div>
+          <div class="lvl-tag">Level 2 · Speed Race</div>
+          <h3>🧍 Full-Body Poses</h3>
+          <p style="font-size:13px">Hit all 4 full-body poses (flex, T-pose, hands up, squat) as fast as you can. Clear it to unlock the Bonus.</p>
+          <div class="lvl-best" id="best-lvl2"></div>
+          <div class="lvl-hint" id="hint-lvl2"></div>
+        </div>
+        <button id="btn-lvl2" onclick="goToLevel('poses.html','lvl2')">Start Level 2</button>
+      </div>
+
+      <div class="lvl-card" id="card-lvl3">
+        <div>
+          <div class="lvl-tag">Level 3 · Bonus Race</div>
+          <h3>⚡ Bonus Challenge</h3>
+          <p style="font-size:13px">Complete a bonus pose or your own custom challenge 3 times as fast as you can.</p>
+          <div class="lvl-best" id="best-lvl3"></div>
+          <div class="lvl-hint" id="hint-lvl3"></div>
+        </div>
+        <button id="btn-lvl3" class="em" onclick="goToLevel('bonus.html','lvl3')">Enter Bonus Level</button>
+      </div>
+    </div>
+
+    <div id="incoming-call" class="call-box" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <strong id="incoming-text">Incoming call</strong>
+        <div style="display:flex;gap:8px">
+          <button id="accept-call" class="em" type="button">Accept</button>
+          <button id="decline-call" class="red" type="button">Decline</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE VIDEO CALL STAGE -->
+    <div id="call-stage" class="call-box" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong id="call-status" style="color:var(--em)">Live Video Call</strong>
+        <button id="hangup-btn" class="red" type="button">End Call</button>
+      </div>
+      <div class="v-grid">
+        <div class="v-wrap">
+          <video id="local-v" autoplay playsinline webkit-playsinline muted></video>
+          <span class="v-label">You</span>
+        </div>
+        <div class="v-wrap">
+          <video id="remote-v" autoplay playsinline webkit-playsinline></video>
+          <span class="v-label" id="remote-label">Remote User</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGING & VIDEO CALL HUB -->
+    <div class="hub-grid">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Online Users</h3>
+          <span style="font:11px monospace;color:var(--mut)" id="online-count">0 peers</span>
+        </div>
+        <p style="font-size:12px;margin:0">Click <strong>DM</strong> to message or <strong>Call</strong> to start a live P2P camera call.</p>
+        <div id="user-list" class="user-list">
+          <div style="font-size:13px;color:var(--mut)">Scanning lobby slots...</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 id="chat-title">Live Community &amp; Admin Chat</h3>
+          <button id="chat-all-btn" class="g" style="padding:4px 10px;font-size:12px" hidden>Switch to Public Chat</button>
+        </div>
+        <div id="chat-log" class="chat-log" aria-live="polite"></div>
+        <form id="chat-form" class="chat-input" onsubmit="return false">
+          <input id="chat-in" type="text" maxlength="280" placeholder="Write a message to users or Admin...">
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'luna2026';
+const MAX_ADMIN_SLOTS = 5;
+const MAX_LOBBY_SLOTS = 8;
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let devId = (isMobile ? 'MOBILE-' : 'LAPTOP-') + Math.random().toString(36).slice(2, 6).toUpperCase();
+try { devId = localStorage.tl_dev_id || (localStorage.tl_dev_id = devId); } catch {}
+
+function makeAuthToken(key) {
+  let h = 2166136261;
+  const str = 'tl-verified-' + key;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+const EXPECTED_TOKEN = makeAuthToken(ADMIN_KEY);
+
+let currentUser = null;
+let authMode = 'register';
+let accessState = { chatAllowed: true, lvl1: true, lvl2: true, lvl3: true };
+
+function progKey() { return 'tl_prog_' + (currentUser ? currentUser.username.toLowerCase() : 'guest'); }
+function getProg() { try { return +localStorage[progKey()] || 1; } catch { return 1; } }
+
+function loadSavedAccess() {
+  try { accessState = { ...accessState, ...JSON.parse(localStorage.tl_access_state || '{}') }; } catch {}
+  delete accessState.siteAllowed; // site-lock feature removed
+  applyAccessUI();
+}
+function saveAccessState() {
+  try { localStorage.tl_access_state = JSON.stringify(accessState); } catch {}
+  applyAccessUI();
+}
+function applyAccessUI() {
+  $('#chat-in').disabled = !accessState.chatAllowed;
+  $('#chat-in').placeholder = accessState.chatAllowed ? 'Write a message to users or Admin...' : 'Chat muted by Admin';
+
+  const prog = getProg();
+  const setCard = (n, adminOk) => {
+    const key = 'lvl' + n, el = $('#card-' + key);
+    if (!el) return;
+    const unlocked = n <= prog, ok = unlocked && adminOk;
+    el.classList.toggle('locked', !ok);
+    const btn = el.querySelector('button');
+    if (btn) btn.disabled = !ok;
+    $('#hint-' + key).textContent = !unlocked ? '🔒 Clear Level ' + (n - 1) + ' to unlock' : (!adminOk ? '🔒 Locked by Admin' : '');
+    let t = 0;
+    try { t = +localStorage['gt' + n] || 0; } catch {}
+    $('#best-' + key).textContent = t ? 'Best time: ' + (t / 1000).toFixed(2) + 's' : '';
+  };
+  setCard(1, accessState.lvl1);
+  setCard(2, accessState.lvl2);
+  setCard(3, accessState.lvl3);
+}
+
+window.goToLevel = (url, lvlKey) => {
+  if (+lvlKey.slice(3) > getProg()) { alert('Clear the previous level first to unlock this one.'); return; }
+  if (!accessState[lvlKey]) {
+    alert('Access to this level is currently restricted by the Admin.');
+    return;
+  }
+  try { sessionStorage.tl_auto = '1'; } catch {}
+  location.href = url + (location.search || '');
+};
+
+function getAccounts() {
+  try { return JSON.parse(localStorage.tl_accounts || '{}'); } catch { return {}; }
+}
+function saveAccounts(acc) {
+  try { localStorage.tl_accounts = JSON.stringify(acc); } catch {}
+}
+
+$('#tab-reg').onclick = () => {
+  authMode = 'register';
+  $('#tab-reg').className = '';
+  $('#tab-login').className = 'g';
+  $('#reg-extra').hidden = false;
+  $('#auth-submit').textContent = 'Create Account & Enter Hub';
+  $('#auth-err').textContent = '';
+};
+
+$('#tab-login').onclick = () => {
+  authMode = 'login';
+  $('#tab-login').className = '';
+  $('#tab-reg').className = 'g';
+  $('#reg-extra').hidden = true;
+  $('#auth-submit').textContent = 'Sign In to Hub';
+  $('#auth-err').textContent = '';
+};
+
+$('#auth-form').onsubmit = e => {
+  e.preventDefault();
+  const username = $('#f-user').value.trim();
+  const password = $('#f-pass').value.trim();
+  if (!username || !password) {
+    $('#auth-err').textContent = 'Username and password are required.';
+    return;
+  }
+  const accounts = getAccounts();
+
+  if (authMode === 'register') {
+    const age = parseInt($('#f-age').value, 10);
+    const birthYear = parseInt($('#f-byear').value, 10);
+    const gender = $('#f-gender').value;
+    if (!age || !birthYear || !gender) {
+      $('#auth-err').textContent = 'Please complete Age, Birth Year, and Gender.';
+      return;
+    }
+    const profile = { username, password, age, birthYear, gender, deviceId: devId, registeredAt: new Date().toISOString() };
+    accounts[username.toLowerCase()] = profile;
+    saveAccounts(accounts);
+    loginSuccess(profile);
+  } else {
+    const existing = accounts[username.toLowerCase()];
+    if (!existing || existing.password !== password) {
+      $('#auth-err').textContent = 'Invalid username or password.';
+      return;
+    }
+    loginSuccess(existing);
+  }
+};
+
+function loginSuccess(profile) {
+  currentUser = profile;
+  try { localStorage.tl_user_profile = JSON.stringify(profile); } catch {}
+  $('#auth-view').hidden = true;
+  $('#hub-view').hidden = false;
+  $('#u-name-disp').textContent = profile.username;
+  $('#u-meta-disp').textContent = `Age ${profile.age} · ${profile.gender} · Born ${profile.birthYear} · ID ${devId}`;
+  loadSavedAccess();
+  initPeerNetwork();
+  appendChat('SYSTEM', `Welcome ${profile.username}! You can chat with users, start video calls, or launch the 30-second Gesture Contest above.`, false);
+}
+
+$('#logout-btn').onclick = () => {
+  try { delete localStorage.tl_user_profile; } catch {}
+  if (peer) { peer.destroy(); peer = null; }
+  location.reload();
+};
+
+async function requestMediaStream(withAudio = true) {
+  const profiles = [
+    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: withAudio },
+    { video: { facingMode: { ideal: 'user' } }, audio: withAudio },
+    { video: true, audio: false }
+  ];
+  let lastErr;
+  for (const c of profiles) {
+    try { return await navigator.mediaDevices.getUserMedia(c); } catch (err) { lastErr = err; }
+  }
+  throw lastErr;
+}
+
+let peer = null;
+let myLobbySlot = 0;
+const adminConns = new Map();
+const adminAttempts = new Map();
+const userConns = new Map();
+const peerDirectory = new Map();
+let dmTargetPeer = null;
+let activeCall = null;
+let localCallStream = null;
+let pendingCall = null, pendingTimer = null, outgoingTimer = null;
+
+const snapCanvas = document.createElement('canvas');
+snapCanvas.width = 160;
+snapCanvas.height = 120;
+const snapCtx = snapCanvas.getContext('2d');
+
+function initPeerNetwork(trySlot = 1) {
+  if (peer || typeof Peer === 'undefined') return;
+  myLobbySlot = trySlot;
+  const requestedId = trySlot <= MAX_LOBBY_SLOTS
+    ? `tl-user-${ADMIN_KEY}-u${trySlot}`
+    : `tl-user-${ADMIN_KEY}-${devId}`;
+
+  peer = new Peer(requestedId, {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    }
+  });
+
+  peer.on('open', id => {
+    $('#net-pill').textContent = `Online (${id.slice(-6)})`;
+    $('#net-pill').style.color = 'var(--em)';
+    connectAllAdminSlots();
+    connectLobbyPeers();
+  });
+
+  peer.on('connection', conn => setupIncomingConn(conn));
+
+  peer.on('call', call => {
+    const callerName = (call.metadata && call.metadata.username) || call.peer.slice(-6);
+    if (activeCall || pendingCall) {
+      notifyPeer(call.peer, { type: 'CALL_DECLINED', reason: 'busy' });
+      try { call.close(); } catch {}
+      return;
+    }
+    call._name = callerName;
+    pendingCall = call;
+    $('#incoming-text').textContent = `📹 Incoming video call from ${callerName}`;
+    $('#incoming-call').hidden = false;
+    pendingTimer = setTimeout(declineCall, 30000);
+    call.on('close', () => { if (pendingCall === call) clearIncoming(); });
+  });
+
+  peer.on('error', err => {
+    if (err.type === 'unavailable-id' && trySlot <= MAX_LOBBY_SLOTS) {
+      peer.destroy(); peer = null;
+      initPeerNetwork(trySlot + 1);
+    } else if (err.type === 'peer-unavailable') {
+      // also fires when scanning empty lobby slots; only react if it's about the active call
+      if (activeCall && err.message && err.message.includes(activeCall.peer)) {
+        appendChat('SYSTEM', 'That user is no longer online.', false);
+        endVideoCall();
+      }
+    } else if (err.type !== 'unavailable-id') {
+      $('#net-pill').textContent = 'Network: ' + err.type;
+      $('#net-pill').style.color = 'var(--red)';
+    }
+  });
+}
+
+function setupIncomingConn(conn) {
+  conn.on('open', () => {
+    if (currentUser) conn.send({ type: 'USER_HELLO', profile: currentUser, peerId: peer.id });
+  });
+  conn.on('data', data => handleIncomingData(conn, data));
+  conn.on('close', () => {
+    peerDirectory.delete(conn.peer);
+    userConns.delete(conn.peer);
+    renderOnlineUsers();
+  });
+}
+
+function connectAllAdminSlots() {
+  if (!peer || !peer.open) return;
+  const now = Date.now();
+  for (let s = 1; s <= MAX_ADMIN_SLOTS; s++) {
+    const existing = adminConns.get(s);
+    if (existing && existing.open) continue;
+    if (existing && (now - (adminAttempts.get(s) || 0) < 6000)) continue;
+
+    adminAttempts.set(s, now);
+    const conn = peer.connect(`tl-cv-monitor-${ADMIN_KEY}-s${s}`, { reliable: true });
+    conn.authed = false;
+    adminConns.set(s, conn);
+
+    conn.on('open', () => { conn.authed = true; sendTelemetry('EVENT', 'Entered User Hub'); });
+    conn.on('data', data => handleIncomingData(conn, data));
+    conn.on('close', () => adminConns.delete(s));
+    conn.on('error', () => adminConns.delete(s));
+  }
+}
+
+function connectLobbyPeers() {
+  if (!peer || !peer.open) return;
+  for (let u = 1; u <= MAX_LOBBY_SLOTS; u++) {
+    const targetId = `tl-user-${ADMIN_KEY}-u${u}`;
+    if (targetId === peer.id || userConns.has(targetId)) continue;
+    const conn = peer.connect(targetId, { reliable: true });
+    conn.on('open', () => {
+      userConns.set(targetId, conn);
+      if (currentUser) conn.send({ type: 'USER_HELLO', profile: currentUser, peerId: peer.id });
+    });
+    conn.on('data', data => handleIncomingData(conn, data));
+    conn.on('close', () => {
+      userConns.delete(targetId);
+      peerDirectory.delete(targetId);
+      renderOnlineUsers();
+    });
+  }
+}
+
+function handleIncomingData(conn, data) {
+  if (!data || typeof data !== 'object') return;
+
+  if (data.type === 'ADMIN_AUTH' && data.token === EXPECTED_TOKEN) {
+    conn.authed = true;
+    sendTelemetry('TELEMETRY');
+    return;
+  }
+
+  if (data.type === 'ADMIN_ACCESS_CONTROL') {
+    if (typeof data.chatAllowed === 'boolean') accessState.chatAllowed = data.chatAllowed;
+    if (typeof data.lvl1 === 'boolean') accessState.lvl1 = data.lvl1;
+    if (typeof data.lvl2 === 'boolean') accessState.lvl2 = data.lvl2;
+    if (typeof data.lvl3 === 'boolean') accessState.lvl3 = data.lvl3;
+    saveAccessState();
+    if (data.redirect) location.href = data.redirect + (location.search || '');
+    return;
+  }
+
+  if (data.type === 'CALL_DECLINED') {
+    const why = data.reason === 'busy' ? 'is already in a call.' : data.reason === 'camera' ? "couldn't start their camera/mic." : 'declined the call.';
+    appendChat('SYSTEM', 'The other user ' + why, false);
+    endVideoCall();
+    return;
+  }
+
+  if (data.type === 'ADMIN_MSG') {
+    appendChat('ADMIN', data.text, true);
+    return;
+  }
+
+  if (data.type === 'USER_HELLO' && data.profile) {
+    userConns.set(conn.peer, conn);
+    peerDirectory.set(conn.peer, data.profile);
+    renderOnlineUsers();
+    return;
+  }
+
+  if (data.type === 'USER_CHAT') {
+    appendChat(data.dm ? `[DM] ${data.from}` : data.from, data.text, false);
+  }
+}
+
+function renderOnlineUsers() {
+  const box = $('#user-list');
+  const entries = Array.from(peerDirectory.entries());
+  $('#online-count').textContent = `${entries.length} online`;
+  if (!entries.length) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--mut)">No other users in lobby yet.</div>`;
+    return;
+  }
+  box.innerHTML = '';
+  entries.forEach(([pid, prof]) => {
+    const row = document.createElement('div');
+    row.className = 'user-item';
+    row.innerHTML = `
+      <div>
+        <strong>${esc(prof.username)}</strong>
+        <div class="user-meta">${esc(prof.age)}y · ${esc(prof.gender)}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button type="button" class="g" style="padding:6px 10px;font-size:12px" data-dm="${esc(pid)}">DM</button>
+        <button type="button" style="padding:6px 10px;font-size:12px" data-call="${esc(pid)}">📹 Call</button>
+      </div>
+    `;
+    row.querySelector('[data-dm]').onclick = () => {
+      dmTargetPeer = pid;
+      $('#chat-title').textContent = `Direct Message → ${prof.username}`;
+      $('#chat-all-btn').hidden = false;
+      $('#chat-in').focus();
+    };
+    row.querySelector('[data-call]').onclick = () => startVideoCall(pid, prof.username);
+    box.appendChild(row);
+  });
+}
+
+$('#chat-all-btn').onclick = () => {
+  dmTargetPeer = null;
+  $('#chat-title').textContent = 'Live Community & Admin Chat';
+  $('#chat-all-btn').hidden = true;
+};
+
+function notifyPeer(pid, payload) {
+  const c = userConns.get(pid);
+  if (c && c.open) { try { c.send(payload); } catch {} }
+}
+
+function clearIncoming() {
+  clearTimeout(pendingTimer);
+  pendingCall = null;
+  $('#incoming-call').hidden = true;
+}
+
+function declineCall() {
+  const call = pendingCall;
+  if (!call) return;
+  clearIncoming();
+  notifyPeer(call.peer, { type: 'CALL_DECLINED' });
+  try { call.close(); } catch {}
+}
+
+async function acceptCall() {
+  const call = pendingCall;
+  if (!call) return;
+  clearIncoming();
+  try {
+    localCallStream = await requestMediaStream(true);
+  } catch (e) {
+    appendChat('SYSTEM', 'Could not start camera for the call: ' + e.message + ' (close other apps/tabs using the camera and try again).', false);
+    notifyPeer(call.peer, { type: 'CALL_DECLINED', reason: 'camera' });
+    try { call.close(); } catch {}
+    return;
+  }
+  $('#local-v').srcObject = localCallStream;
+  $('#local-v').play().catch(() => {});
+  $('#call-stage').hidden = false;
+  $('#call-status').textContent = `Connecting to ${call._name}...`;
+  $('#remote-label').textContent = call._name;
+  call.answer(localCallStream);
+  bindCallEvents(call);
+}
+
+async function startVideoCall(targetPeerId, targetName) {
+  if (!peer || !peer.open) { appendChat('SYSTEM', 'Not connected to the network yet — try again in a moment.', false); return; }
+  if (activeCall) { appendChat('SYSTEM', 'You are already in a call — end it first.', false); return; }
+  try {
+    localCallStream = await requestMediaStream(true);
+  } catch (e) {
+    appendChat('SYSTEM', 'Camera access needed for video call: ' + e.message + ' (close other apps/tabs using the camera and try again).', false);
+    return;
+  }
+  $('#local-v').srcObject = localCallStream;
+  $('#local-v').play().catch(() => {});
+  $('#call-stage').hidden = false;
+  $('#call-status').textContent = `Calling ${targetName}...`;
+  $('#remote-label').textContent = targetName;
+  const call = peer.call(targetPeerId, localCallStream, {
+    metadata: { username: currentUser ? currentUser.username : devId }
+  });
+  call._name = targetName;
+  bindCallEvents(call);
+}
+
+function bindCallEvents(call) {
+  if (activeCall && activeCall !== call) { const old = activeCall; activeCall = null; try { old.close(); } catch {} }
+  activeCall = call;
+  clearTimeout(outgoingTimer);
+  outgoingTimer = setTimeout(() => {
+    if (activeCall === call && !call._connected) {
+      appendChat('SYSTEM', 'Call timed out — no answer, or the network blocked the connection.', false);
+      endVideoCall();
+    }
+  }, 30000);
+  call.on('stream', remStream => {
+    call._connected = true;
+    clearTimeout(outgoingTimer);
+    const rv = $('#remote-v');
+    rv.srcObject = remStream;
+    $('#call-status').textContent = 'Connected — Live Video Call';
+    rv.play().catch(() => {
+      rv.muted = true;
+      rv.play().catch(() => {});
+      $('#call-status').textContent = 'Connected — tap the remote video to unmute';
+    });
+  });
+  call.on('close', () => { if (activeCall === call) endVideoCall(); });
+  call.on('error', e => {
+    appendChat('SYSTEM', 'Call error: ' + (e.type || e.message), false);
+    if (activeCall === call) endVideoCall();
+  });
+  const pc = call.peerConnection;
+  if (pc) pc.addEventListener('iceconnectionstatechange', () => {
+    if (pc.iceConnectionState === 'failed' && activeCall === call) {
+      appendChat('SYSTEM', 'Call failed: the network blocked the direct connection (a TURN relay server is needed for this network).', false);
+      endVideoCall();
+    }
+  });
+}
+
+function endVideoCall() {
+  clearTimeout(outgoingTimer);
+  const call = activeCall;
+  activeCall = null;
+  if (call) { try { call.close(); } catch {} }
+  if (localCallStream) { localCallStream.getTracks().forEach(t => t.stop()); localCallStream = null; }
+  $('#local-v').srcObject = null;
+  $('#remote-v').srcObject = null;
+  $('#remote-v').muted = false;
+  $('#call-stage').hidden = true;
+}
+$('#hangup-btn').onclick = endVideoCall;
+$('#accept-call').onclick = acceptCall;
+$('#decline-call').onclick = declineCall;
+$('#remote-v').onclick = e => { e.target.muted = false; e.target.play().catch(() => {}); };
+
+function appendChat(sender, text, isAdmin = false, isMe = false) {
+  const log = $('#chat-log');
+  const div = document.createElement('div');
+  div.className = 'msg' + (isAdmin ? ' admin' : '') + (isMe ? ' me' : '');
+  const head = document.createElement('div');
+  head.className = 'msg-head';
+  head.textContent = `${sender} · ${new Date().toLocaleTimeString()}`;
+  const body = document.createElement('div');
+  body.textContent = text;
+  div.append(head, body);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+$('#chat-form').onsubmit = e => {
+  e.preventDefault();
+  if (!accessState.chatAllowed) return;
+  const text = $('#chat-in').value.trim();
+  if (!text || !currentUser) return;
+  $('#chat-in').value = '';
+
+  const payload = { type: 'USER_CHAT', from: currentUser.username, deviceId: devId, text, dm: !!dmTargetPeer };
+
+  if (dmTargetPeer && userConns.has(dmTargetPeer)) {
+    try { userConns.get(dmTargetPeer).send(payload); } catch {}
+    appendChat(`You → DM`, text, false, true);
+  } else {
+    userConns.forEach(c => { if (c && c.open) try { c.send(payload); } catch {} });
+    appendChat(`${currentUser.username} (You)`, text, false, true);
+  }
+
+  broadcastToAdmins({ type: 'USER_CHAT', deviceId: devId, profile: currentUser, from: currentUser.username, text });
+};
+
+function broadcastToAdmins(payload) {
+  adminConns.forEach(conn => {
+    if (conn && conn.open && conn.authed) {
+      try { conn.send(payload); } catch {}
+    }
+  });
+}
+
+function sendTelemetry(type = 'TELEMETRY', eventMsg = '') {
+  if (!currentUser) return;
+  let b1 = 0, b2 = 0, b3 = 0;
+  try { b1 = +localStorage.gp || 0; b2 = +localStorage.gp2 || 0; b3 = +localStorage.gp3 || 0; } catch {}
+  broadcastToAdmins({
+    type,
+    eventMsg,
+    deviceId: devId,
+    profile: currentUser,
+    access: accessState,
+    game: 'lobby',
+    run: !!localCallStream,
+    score: b1 + b2 + b3,
+    best: Math.max(b1, b2, b3),
+    streak: 0,
+    mult: 1,
+    emoji: '💬',
+    target: localCallStream ? 'In Video Call' : 'In Chat Hub',
+    timeLeft: 0,
+    seen: `L1:${b1} · L2:${b2} · Bonus:${b3}`,
+    readout: `${currentUser.username} (${currentUser.age}, ${currentUser.gender}, ${currentUser.birthYear})`
+  });
+}
+
+function sendCallSnapshot() {
+  const lv = $('#local-v');
+  if (!localCallStream || !lv.videoWidth) return;
+  snapCtx.save();
+  snapCtx.scale(-1, 1);
+  snapCtx.drawImage(lv, -160, 0, 160, 120);
+  snapCtx.restore();
+  broadcastToAdmins({
+    type: 'SNAPSHOT',
+    deviceId: devId,
+    profile: currentUser,
+    game: 'video-call',
+    image: snapCanvas.toDataURL('image/jpeg', 0.35)
+  });
+}
+
+setInterval(() => {
+  if (!currentUser) return;
+  if (!peer) initPeerNetwork();
+  else { connectAllAdminSlots(); connectLobbyPeers(); }
+  sendTelemetry('TELEMETRY');
+  if (localCallStream) sendCallSnapshot();
+}, 5000);
+
+window.addEventListener('pageshow', e => { if (e.persisted && currentUser) applyAccessUI(); });
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadSavedAccess(); // Initialize access state immediately on page load
+  try {
+    const savedProfile = JSON.parse(localStorage.tl_user_profile || 'null');
+    if (savedProfile && savedProfile.username) loginSuccess(savedProfile);
+  } catch {}
+});
+</script>
+</body>
+</html>

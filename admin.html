@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08110e">
+<meta name="color-scheme" content="dark">
+<title>Admin Telemetry &amp; Access Control — Tyler Lacy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
+<style>
+:root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--red:#f87171;--text:#eceae0;--mut:#a3b5aa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:1120px;margin:0 auto;padding:24px 18px 64px}
+a{color:var(--cu);text-decoration:none}
+h1{font:700 1.9rem/1.1 system-ui,sans-serif;margin:12px 0 6px}
+p{color:var(--mut);margin:0 0 16px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);padding:14px 16px;border-radius:8px;margin-bottom:20px}
+input,select{background:#050b09;border:1px solid var(--line);color:var(--text);padding:9px 12px;border-radius:6px;font:600 14px monospace;width:180px}
+button{font:600 14px system-ui,sans-serif;padding:9px 16px;border-radius:6px;border:1px solid var(--cu);background:var(--cu);color:#08110e;cursor:pointer}
+button.g{background:var(--bg);color:var(--text);border-color:var(--line)}
+button.red{background:var(--red);border-color:var(--red);color:#1a0505}
+.pill{margin-left:auto;font:600 13px monospace;padding:5px 12px;border-radius:20px;border:1px solid var(--line);background:#050b09}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:16px}
+@media(max-width:540px){.grid{grid-template-columns:1fr}}
+.client{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.client-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.dev-id{font:700 14px monospace;color:var(--cu)}
+.badge{font:600 11px monospace;padding:3px 8px;border-radius:4px;background:rgba(52,211,153,.12);color:var(--em);border:1px solid rgba(52,211,153,.3)}
+.badge.idle{background:rgba(255,182,39,.1);color:var(--am);border-color:rgba(255,182,39,.3)}
+.client-body{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:start}
+@media(max-width:480px){.client-body{grid-template-columns:1fr}}
+.snap-box{position:relative;width:100%;aspect-ratio:4/3;background:#000;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.snap-box img{width:100%;height:100%;object-fit:contain;display:block}
+.snap-time{position:absolute;bottom:4px;right:6px;background:rgba(0,0,0,.75);color:var(--mut);font:10px monospace;padding:2px 5px;border-radius:3px}
+.stats{display:flex;flex-direction:column;gap:6px}
+.score-row{display:flex;justify-content:space-between;align-items:baseline}
+.score{font:700 1.8rem/1 system-ui,sans-serif;color:var(--am)}
+.best{font:600 12px monospace;color:var(--mut)}
+.meta{font:12px/1.4 monospace;color:var(--mut);background:#08110e;padding:8px 10px;border-radius:6px;border:1px solid var(--line)}
+.controls-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.controls-bar button{padding:5px 10px;font-size:12px}
+.log{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
+.log h3{margin:0 0 8px;font:600 13px monospace;color:var(--cu);text-transform:uppercase}
+.log-list{max-height:160px;overflow-y:auto;font:12px/1.6 monospace;color:var(--mut)}
+.empty{grid-column:1/-1;text-align:center;padding:48px 20px;background:var(--card);border:1px dashed var(--line);border-radius:10px;color:var(--mut)}
+/* Password Gate Modal */
+.gate{position:fixed;inset:0;background:rgba(8,17,14,.96);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-box{background:var(--card);border:1px solid var(--cu);border-radius:10px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.8)}
+.gate-box h2{margin:0 0 8px;font:700 1.4rem system-ui,sans-serif;color:var(--text)}
+.gate-box input{width:100%;margin:12px 0;text-align:center;font-size:16px}
+.gate-err{color:var(--red);font:13px monospace;min-height:1.4em;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div class="gate" id="auth-gate">
+  <div class="gate-box">
+    <div style="font:600 11px monospace;color:var(--cu);letter-spacing:.1em;margin-bottom:6px">RESTRICTED ADMIN MONITOR</div>
+    <h2>Admin Authentication</h2>
+    <p style="font-size:13px;margin-bottom:8px">Enter password to unlock real-time site control &amp; user telemetry. Snapshots remain RAM-only.</p>
+    <input type="password" id="pass-input" placeholder="Password..." autocomplete="current-password">
+    <div class="gate-err" id="pass-err"></div>
+    <button id="pass-btn" style="width:100%">Unlock Monitor</button>
+  </div>
+</div>
+
+<main class="w" id="app-main" hidden>
+  <a href="index.html">← User Hub</a> · <a href="poses.html">Poses</a> · <a href="gestures.html">Gestures</a> · <a href="bonus.html">Bonus</a>
+  <h1>Admin Telemetry, User Data &amp; Real-Time Access Control</h1>
+  <p>Monitor user profiles, view live RAM-only snapshots, adjust site access in real time, and broadcast administrative notices.</p>
+
+  <div class="bar">
+    <label for="key" style="font:600 13px monospace;color:var(--cu)">CHANNEL:</label>
+    <input id="key" type="text" value="luna2026" aria-label="Channel Key">
+    <button id="connect-btn">Switch Channel</button>
+    <button id="broadcast-btn" class="g">Broadcast Announcement</button>
+    <button id="clear-btn" class="g">Clear Cards</button>
+    <button id="lock-btn" class="red">Lock Screen</button>
+    <span id="status-pill" class="pill" style="color:var(--am)">Standby</span>
+  </div>
+
+  <div id="clients-grid" class="grid">
+    <div class="empty" id="empty-state">
+      Waiting for user connections...<br>
+      <span style="font-size:13px">Open <strong>index.html</strong>, register an account, and enter the Hub to populate user data and video streams.</span>
+    </div>
+  </div>
+
+  <div class="log">
+    <h3>Ephemeral Event Log &amp; User Activity (RAM-Only)</h3>
+    <div id="log-list" class="log-list"></div>
+  </div>
+</main>
+
+<script>
+window.dbg=()=>{};
+const $ = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const grid = $('#clients-grid');
+const statusPill = $('#status-pill');
+const logList = $('#log-list');
+
+const EXPECTED_B64 = 'bHVuYTIwMjY='; // luna2026
+const BLANK_GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
+const MAX_SLOTS = 5;
+
+let peer = null;
+let currentKey = '';
+const clients = new Map();
+
+function makeAuthToken(key) {
+  let h = 2166136261;
+  const str = 'tl-verified-' + key;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+function addLog(msg) {
+  const row = document.createElement('div');
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logList.prepend(row);
+  while (logList.children.length > 50) logList.lastChild.remove();
+}
+
+function setStatus(text, color) {
+  statusPill.textContent = text;
+  statusPill.style.color = color;
+}
+
+function ensureCard(id, profile) {
+  const empty = $('#empty-state');
+  if (empty) empty.remove();
+  if (clients.has(id)) return clients.get(id);
+
+  const card = document.createElement('div');
+  card.className = 'client';
+  card.id = `client-${id}`;
+  const username = profile ? profile.username : id;
+  const userInfo = profile ? `Age ${esc(profile.age)} · ${esc(profile.gender)} · Born ${esc(profile.birthYear)}` : 'Guest / Device';
+
+  card.innerHTML = `
+    <div class="client-head">
+      <div>
+        <span class="dev-id">${esc(username)}</span>
+        <span style="font:11px monospace;color:var(--mut);margin-left:6px" class="c-devid">${esc(id)}</span>
+      </div>
+      <span class="badge c-state">CONNECTED</span>
+    </div>
+    <div class="client-body">
+      <div class="snap-box">
+        <img class="c-img" alt="5s RAM snapshot" src="${BLANK_GIF}">
+        <span class="snap-time c-snap-time">Waiting for feed...</span>
+      </div>
+      <div class="stats">
+        <div class="score-row">
+          <div><span class="score c-score">0</span> <span style="font-size:12px;color:var(--mut)">pts</span></div>
+          <div class="best c-best">Best: 0</div>
+        </div>
+        <div class="meta">
+          <div class="c-userinfo"><strong>${userInfo}</strong></div>
+          <div class="c-seen">Status: Active Hub</div>
+          <div class="c-readout" style="color:var(--cu)"></div>
+        </div>
+        <div class="controls-bar">
+          <button type="button" class="g c-msg-btn">DM</button>
+          <button type="button" class="g c-lvl-btn">Toggle Levels</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  card.querySelector('.c-msg-btn').onclick = () => {
+    const text = prompt('Enter direct message to ' + username + ':');
+    if (!text) return;
+    sendAdminMessage(id, text);
+    addLog(`Sent Admin DM to ${username}: ${text}`);
+  };
+
+  card.querySelector('.c-lvl-btn').onclick = () => {
+    const action = prompt(`Access control for ${username}:\n1 = Allow All Levels\n2 = Lock Level 2 & 3\n3 = Allow Site, Lock Chat`, '1');
+    if (action === '1') {
+      sendAccessControl(id, { chatAllowed: true, lvl1: true, lvl2: true, lvl3: true });
+      addLog(`Granted full access to ${username}`);
+    } else if (action === '2') {
+      sendAccessControl(id, { lvl1: true, lvl2: false, lvl3: false });
+      addLog(`Restricted Levels 2 & 3 for ${username}`);
+    } else if (action === '3') {
+      sendAccessControl(id, { chatAllowed: false });
+      addLog(`Muted chat for ${username}`);
+    }
+  };
+
+  grid.prepend(card);
+  const entry = { card, profile };
+  clients.set(id, entry);
+  return entry;
+}
+
+function sendAccessControl(targetPeerId, controls) {
+  const conn = activeConnections.get(targetPeerId);
+  if (conn && conn.open) {
+    conn.send({ type: 'ADMIN_ACCESS_CONTROL', ...controls });
+  }
+}
+
+function sendAdminMessage(targetPeerId, text) {
+  const conn = activeConnections.get(targetPeerId);
+  if (conn && conn.open) {
+    conn.send({ type: 'ADMIN_MSG', text });
+  }
+}
+
+const activeConnections = new Map();
+
+function handlePayload(connPeerId, data) {
+  if (!data || typeof data !== 'object') return;
+  const devId = data.deviceId || connPeerId.slice(0, 12);
+  const profile = data.profile || null;
+  const entry = ensureCard(devId, profile);
+  const c = entry.card;
+
+  if (profile && profile.username) {
+    c.querySelector('.dev-id').textContent = profile.username;
+    c.querySelector('.c-userinfo').innerHTML = `<strong>${esc(profile.username)}</strong> (${esc(profile.age)}y, ${esc(profile.gender)}, ${esc(profile.birthYear)})`;
+  }
+
+  if (data.type === 'TELEMETRY' || data.type === 'EVENT' || data.type === 'USER_CHAT') {
+    if (data.score !== undefined) c.querySelector('.c-score').textContent = data.score;
+    if (data.best !== undefined) c.querySelector('.c-best').textContent = `Best: ${data.best}`;
+    if (data.seen) c.querySelector('.c-seen').textContent = data.seen;
+    if (data.readout) c.querySelector('.c-readout').textContent = data.readout;
+
+    const badge = c.querySelector('.c-state');
+    if (data.run) {
+      badge.textContent = 'ACTIVE / CALL';
+      badge.className = 'badge c-state';
+    } else {
+      badge.textContent = 'ONLINE HUB';
+      badge.className = 'badge idle c-state';
+    }
+
+    if (data.type === 'EVENT' && data.eventMsg) {
+      addLog(`${profile ? profile.username : devId}: ${data.eventMsg}`);
+    }
+    if (data.type === 'USER_CHAT' && data.text) {
+      addLog(`[CHAT] ${data.from || devId}: ${data.text}`);
+    }
+  }
+
+  if (data.type === 'SNAPSHOT' && data.image) {
+    const imgEl = c.querySelector('.c-img');
+    imgEl.src = data.image;
+    c.querySelector('.c-snap-time').textContent = new Date().toLocaleTimeString();
+    data.image = null;
+  }
+}
+
+function connectSlot(key, slotNum) {
+  if (slotNum > MAX_SLOTS) {
+    setStatus('All Admin Slots Full', '#f87171');
+    return;
+  }
+
+  if (peer) {
+    peer.removeAllListeners();
+    peer.destroy();
+    peer = null;
+  }
+
+  const slotPeerId = `tl-cv-monitor-${key}-s${slotNum}`;
+  setStatus(`Claiming Slot #${slotNum}...`, '#ffb627');
+
+  peer = new Peer(slotPeerId, {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        {
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turn:openrelay.metered.ca:443?transport=tcp'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    }
+  });
+
+  peer.on('open', () => {
+    setStatus(`Online (${key} · Slot #${slotNum})`, '#34d399');
+    addLog(`Admin connected on channel "${key}" [Slot #${slotNum}].`);
+  });
+
+  peer.on('connection', conn => {
+    activeConnections.set(conn.peer, conn);
+    conn.on('open', () => {
+      conn.send({ type: 'ADMIN_AUTH', token: makeAuthToken(key) });
+    });
+    conn.on('data', payload => handlePayload(conn.peer, payload));
+    conn.on('close', () => {
+      activeConnections.delete(conn.peer);
+      addLog(`User session (${conn.peer.slice(0, 10)}) disconnected.`);
+    });
+  });
+
+  peer.on('error', err => {
+    if (err.type === 'unavailable-id') {
+      setTimeout(() => connectSlot(key, slotNum + 1), 250);
+    } else {
+      setStatus(`Notice: ${err.type}`, '#ffb627');
+    }
+  });
+}
+
+function startAdmin(force = false) {
+  const key = ($('#key').value.trim() || 'luna2026').replace(/[^a-zA-Z0-9_-]/g, '');
+  if (peer && peer.open && currentKey === key && !force) return;
+  currentKey = key;
+  connectSlot(key, 1);
+}
+
+function unlockAdmin() {
+  const val = $('#pass-input').value.trim();
+  let ok = false;
+  try { ok = btoa(val) === EXPECTED_B64; } catch {}
+  if (!ok) {
+    $('#pass-err').textContent = 'Invalid admin password.';
+    return;
+  }
+  try { sessionStorage.tl_admin_unlocked = '1'; } catch {}
+  $('#auth-gate').style.display = 'none';
+  $('#app-main').hidden = false;
+  startAdmin(true);
+}
+
+$('#pass-btn').onclick = unlockAdmin;
+$('#pass-input').addEventListener('keydown', e => { if (e.key === 'Enter') unlockAdmin(); });
+
+$('#lock-btn').onclick = () => {
+  try { delete sessionStorage.tl_admin_unlocked; } catch {}
+  if (peer) { peer.destroy(); peer = null; }
+  location.reload();
+};
+
+$('#connect-btn').onclick = () => startAdmin(true);
+
+$('#broadcast-btn').onclick = () => {
+  const text = prompt('Enter announcement message to broadcast to all connected users:');
+  if (!text) return;
+  activeConnections.forEach(conn => {
+    if (conn && conn.open) {
+      try { conn.send({ type: 'ADMIN_MSG', text }); } catch {}
+    }
+  });
+  addLog(`Broadcasted announcement: ${text}`);
+};
+
+$('#clear-btn').onclick = () => {
+  clients.forEach(entry => {
+    const img = entry.card.querySelector('.c-img');
+    if (img) img.src = BLANK_GIF;
+  });
+  clients.clear();
+  activeConnections.clear();
+  grid.innerHTML = `<div class="empty" id="empty-state">Cleared RAM cards. Waiting for active users...</div>`;
+  addLog('Cleared all active user cards.');
+};
+
+window.addEventListener('beforeunload', () => {
+  if (peer) { peer.removeAllListeners(); peer.destroy(); }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    if (sessionStorage.tl_admin_unlocked === '1') {
+      $('#auth-gate').style.display = 'none';
+      $('#app-main').hidden = false;
+      startAdmin(true);
+    }
+  } catch {}
+});
+</script>
+</body>
+</html>
