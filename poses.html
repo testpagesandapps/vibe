@@ -99,7 +99,7 @@
 
       <div style="margin-top:auto; font-size:0.8rem; color:var(--muted); border-top:1px solid var(--border); padding-top:12px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
         <span>Player: <strong id="chanLabel" style="color:var(--text);">Loading...</strong></span>
-        <span>Admin Feed: <strong id="adminStatus" style="color:var(--warning);">Searching...</strong></span>
+        <span>Status: <strong id="adminStatus" style="color:var(--warning);">Searching...</strong></span>
       </div>
     </div>
   </div>
@@ -394,7 +394,7 @@
       conn.on('open', () => {
         delete pendingAdmins[conn.peer];
         adminConns[conn.peer] = conn;
-        document.getElementById('adminStatus').textContent = 'Synced Live';
+        document.getElementById('adminStatus').textContent = 'Operational';
         document.getElementById('adminStatus').style.color = '#22c55e';
         sendTelemetry(true);
       });
