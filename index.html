@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Contest Hub & P2P Studio</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -21,7 +21,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
     header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .brand h1 { font-size: 1.5rem; letter-spacing: 0.5px; color: var(--accent); }
     .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
     .badge.online { color: var(--success); border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.1); }
@@ -70,17 +70,12 @@
       <span id="connStatus" class="badge">Initializing TURN...</span>
     </div>
     <div class="top-bar">
-      <label style="font-size:0.8rem;color:var(--muted);">Channel Key:</label>
-      <input type="text" id="channelKey" value="luna2026" style="width:120px;" />
-      <label style="font-size:0.8rem;color:var(--muted);">Slot:</label>
-      <select id="userSlot">
-        <option value="1">Player 1</option>
-        <option value="2">Player 2</option>
-        <option value="3">Player 3</option>
-        <option value="4">Player 4</option>
-      </select>
-      <button onclick="reconnectMesh()">Sync Channel</button>
-      <a href="admin.html" style="text-decoration:none;"><button class="secondary">Admin Monitor ↗</button></a>
+      <label style="font-size:0.8rem;color:var(--muted);">Name:</label>
+      <input type="text" id="playerName" placeholder="Your Name" style="width:120px;" onchange="saveIdentity()" />
+      <label style="font-size:0.8rem;color:var(--muted);">Channel:</label>
+      <input type="text" id="channelKey" value="luna2026" style="width:105px;" />
+      <button onclick="reconnectMesh()">Sync</button>
+      <a href="admin.html" onclick="cleanupMedia()" style="text-decoration:none;"><button class="secondary">Admin Monitor ↗</button></a>
     </div>
   </header>
 
@@ -92,7 +87,7 @@
         <button class="secondary" style="font-size:0.75rem;padding:4px 8px;" onclick="resetProgress()">Reset Scores</button>
       </h2>
       <p style="font-size:0.85rem;color:var(--muted);">
-        Complete each 30-second AI vision challenge in order, or wait for real-time Admin unlock override.
+        Complete each 30-second AI vision challenge to escalate levels and earn points. Live telemetry is synced with the Admin Monitor.
       </p>
 
       <div class="levels">
@@ -102,7 +97,7 @@
             <span class="score-pill" id="scoreL1">0 pts</span>
           </div>
           <p class="level-desc">30-second rapid hand landmark tracking. Hit the target gestures before the clock runs out.</p>
-          <a href="gestures.html" class="level-btn" id="btnL1">Launch Level 1 →</a>
+          <a href="gestures.html" class="level-btn" id="btnL1" onclick="cleanupMedia()">Launch Level 1 →</a>
         </div>
 
         <div class="level-box" id="boxL2">
@@ -111,7 +106,7 @@
             <span class="score-pill" id="scoreL2">0 pts</span>
           </div>
           <p class="level-desc">30-second skeletal pose matching. Unlocks automatically after completing Level 1 or via Admin.</p>
-          <a href="poses.html" class="level-btn locked" id="btnL2">Locked (Finish L1)</a>
+          <a href="poses.html" class="level-btn locked" id="btnL2" onclick="cleanupMedia()">Locked (Finish L1)</a>
         </div>
 
         <div class="level-box" id="boxL3">
@@ -120,44 +115,44 @@
             <span class="score-pill" id="scoreL3">0 pts</span>
           </div>
           <p class="level-desc">High-speed hybrid challenge combining upper-body postures and rapid reaction targets.</p>
-          <a href="bonus.html" class="level-btn locked" id="btnL3">Locked (Finish L2)</a>
+          <a href="bonus.html" class="level-btn locked" id="btnL3" onclick="cleanupMedia()">Locked (Finish L2)</a>
         </div>
       </div>
 
-      <div style="margin-top:auto; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; font-size:0.82rem; color:var(--muted);">
+      <div style="margin-top:auto; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:0.82rem; color:var(--muted);">
         <span>My Peer ID: <strong id="myPeerIdDisplay" style="color:var(--text);">Connecting...</strong></span>
-        <span>Admin Telemetry: <strong id="adminSyncDisplay" style="color:var(--warning);">Standby</strong></span>
+        <span>Admin Feed: <strong id="adminSyncDisplay" style="color:var(--warning);">Searching...</strong></span>
       </div>
     </div>
 
     <!-- Right Column: P2P Video Calling & Chat -->
     <div class="card">
       <h2>
-        <span>📹 P2P Video & Telemetry Link</span>
+        <span>📹 P2P Video & Live Camera Link</span>
         <div style="display:flex;gap:8px;">
-          <button class="secondary" style="font-size:0.8rem;padding:5px 10px;" onclick="startLocalCamera()">Start Cam</button>
+          <button class="secondary" style="font-size:0.8rem;padding:5px 10px;" onclick="startLocalCamera()">Enable Cam</button>
           <button class="danger" style="font-size:0.8rem;padding:5px 10px;" onclick="endCall()">End Call</button>
         </div>
       </h2>
 
       <div style="display:flex; gap:8px; align-items:center;">
-        <input type="text" id="remotePeerInput" placeholder="Enter target Peer ID or Slot (e.g. 2)" style="flex:1;" />
+        <input type="text" id="remotePeerInput" placeholder="Enter target Peer ID to call..." style="flex:1;" />
         <button onclick="callPeer()">Connect & Call</button>
       </div>
 
       <div class="video-grid">
         <div class="video-wrap">
-          <video id="localVideo" autoplay muted playsinline></video>
+          <video id="localVideo" autoplay muted playsinline webkit-playsinline></video>
           <span class="video-label">Local Camera</span>
         </div>
         <div class="video-wrap">
-          <video id="remoteVideo" autoplay playsinline></video>
+          <video id="remoteVideo" autoplay playsinline webkit-playsinline></video>
           <span class="video-label" id="remoteLabel">Remote Peer</span>
         </div>
       </div>
 
       <div class="chat-box" id="chatBox">
-        <div class="msg sys">TURN Relay active (Ports 80/443 UDP/TCP/TLS). Ready for cross-network P2P.</div>
+        <div class="msg sys">TURN Relay active (UDP/TCP/TLS 80 & 443). Ready for iOS, Android, Mac & Windows.</div>
       </div>
 
       <div class="chat-input">
@@ -168,7 +163,6 @@
   </div>
 
   <script>
-    // Metered.ca TURN Configuration (newapptestpage)
     const PEER_CONFIG = {
       debug: 1,
       config: {
@@ -199,18 +193,40 @@
       }
     };
 
+    // Persistent unique user ID per device so no two users collide
+    let userId = localStorage.getItem('tl_unique_uid');
+    if (!userId) {
+      userId = 'u' + Math.random().toString(36).substring(2, 7);
+      localStorage.setItem('tl_unique_uid', userId);
+    }
+
+    function detectDeviceLabel() {
+      const ua = navigator.userAgent || '';
+      if (/iPhone|iPad|iPod/i.test(ua)) return 'iPhone / iOS';
+      if (/Android/i.test(ua)) return 'Android';
+      if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+      if (/Windows/i.test(ua)) return 'Windows';
+      return 'Web Client';
+    }
+
+    const savedKey = localStorage.getItem('tl_channel_key') || 'luna2026';
+    const savedName = localStorage.getItem('tl_username') || `Player-${userId.toUpperCase()}`;
+    document.getElementById('channelKey').value = savedKey;
+    document.getElementById('playerName').value = savedName;
+    localStorage.setItem('tl_username', savedName);
+
     let peer = null;
     let activeChatConn = null;
     let activeCall = null;
     let adminConns = {};
+    let pendingAdmins = {};
     let localStream = null;
-    let telemetryTimer = null;
 
-    // Load saved settings
-    const savedKey = localStorage.getItem('tl_channel_key') || 'luna2026';
-    const savedSlot = localStorage.getItem('tl_user_slot') || '1';
-    document.getElementById('channelKey').value = savedKey;
-    document.getElementById('userSlot').value = savedSlot;
+    function saveIdentity() {
+      const nameVal = document.getElementById('playerName').value.trim() || `Player-${userId.toUpperCase()}`;
+      localStorage.setItem('tl_username', nameVal);
+      broadcastTelemetry();
+    }
 
     function updateLevelUI() {
       const s1 = parseInt(localStorage.getItem('tl_score_gestures') || '0', 10);
@@ -261,17 +277,34 @@
     }
 
     async function startLocalCamera() {
-      if (localStream) return localStream;
+      if (localStream && localStream.active) return localStream;
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
-          audio: true
+          audio: false
         });
-        document.getElementById('localVideo').srcObject = localStream;
-        logChat('Local camera initialized.', 'sys');
+        const v = document.getElementById('localVideo');
+        v.srcObject = localStream;
+        await v.play().catch(() => {});
+        broadcastTelemetry();
         return localStream;
       } catch (err) {
-        logChat('Camera error: ' + err.message, 'sys');
+        logChat('Camera notice: tap "Enable Cam" to allow video.', 'sys');
+        return null;
+      }
+    }
+
+    function captureHubSnapshot() {
+      try {
+        const v = document.getElementById('localVideo');
+        if (!v || v.readyState < 2 || !v.videoWidth) return null;
+        const c = document.createElement('canvas');
+        c.width = 240;
+        c.height = 180;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(v, 0, 0, 240, 180);
+        return c.toDataURL('image/jpeg', 0.5);
+      } catch (e) {
         return null;
       }
     }
@@ -280,12 +313,14 @@
       if (peer) {
         try { peer.destroy(); } catch (e) {}
       }
-      const key = document.getElementById('channelKey').value.trim() || 'luna2026';
-      const slot = document.getElementById('userSlot').value;
-      localStorage.setItem('tl_channel_key', key);
-      localStorage.setItem('tl_user_slot', slot);
+      adminConns = {};
+      pendingAdmins = {};
 
-      const myId = `tl-user-${key}-u${slot}`;
+      const key = document.getElementById('channelKey').value.trim() || 'luna2026';
+      localStorage.setItem('tl_channel_key', key);
+      saveIdentity();
+
+      const myId = `tl-user-${key}-${userId}-hub`;
       document.getElementById('myPeerIdDisplay').textContent = myId;
       document.getElementById('connStatus').textContent = 'Connecting...';
       document.getElementById('connStatus').className = 'badge';
@@ -302,10 +337,8 @@
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          const fallbackId = `tl-user-${key}-u${slot}-${Math.floor(Math.random()*900+100)}`;
+          const fallbackId = `tl-user-${key}-${userId}-${Math.floor(Math.random()*90+10)}`;
           peer = new Peer(fallbackId, PEER_CONFIG);
-        } else {
-          logChat(`Peer Notification (${err.type})`, 'sys');
         }
       });
 
@@ -318,13 +351,31 @@
         call.answer(stream || undefined);
         handleCallStream(call);
       });
+
+      peer.on('disconnected', () => {
+        try { peer.reconnect(); } catch (e) {}
+      });
+    }
+
+    function connectToAdmins(key) {
+      if (!peer || peer.disconnected || peer.destroyed) return;
+      [1, 2].forEach(slot => {
+        const adminId = `tl-cv-monitor-${key}-s${slot}`;
+        if (adminConns[adminId] && adminConns[adminId].open) return;
+        if (pendingAdmins[adminId] && (Date.now() - pendingAdmins[adminId] < 8000)) return;
+
+        pendingAdmins[adminId] = Date.now();
+        const c = peer.connect(adminId, { reliable: true, serialization: 'json' });
+        setupDataConnection(c);
+      });
     }
 
     function setupDataConnection(conn) {
       conn.on('open', () => {
+        delete pendingAdmins[conn.peer];
         if (conn.peer.includes('-monitor-')) {
           adminConns[conn.peer] = conn;
-          document.getElementById('adminSyncDisplay').textContent = 'Connected';
+          document.getElementById('adminSyncDisplay').textContent = 'Synced Live';
           document.getElementById('adminSyncDisplay').style.color = '#22c55e';
           broadcastTelemetry();
         } else {
@@ -335,7 +386,9 @@
 
       conn.on('data', (data) => {
         if (!data || typeof data !== 'object') return;
-        if (data.type === 'chat') {
+        if (data.type === 'admin-ack') {
+          broadcastTelemetry();
+        } else if (data.type === 'chat') {
           logChat(`${data.sender || conn.peer}: ${data.text}`, 'them');
         } else if (data.type === 'admin-cmd') {
           handleAdminCommand(data);
@@ -344,10 +397,15 @@
 
       conn.on('close', () => {
         delete adminConns[conn.peer];
+        delete pendingAdmins[conn.peer];
         if (Object.keys(adminConns).length === 0) {
-          document.getElementById('adminSyncDisplay').textContent = 'Standby';
+          document.getElementById('adminSyncDisplay').textContent = 'Searching...';
           document.getElementById('adminSyncDisplay').style.color = '#f59e0b';
         }
+      });
+
+      conn.on('error', () => {
+        delete pendingAdmins[conn.peer];
       });
     }
 
@@ -360,48 +418,40 @@
         resetProgress();
         logChat('Admin reset contest scores & locks.', 'sys');
       } else if (cmd.action === 'redirect' && cmd.target) {
+        cleanupMedia();
         window.location.href = cmd.target;
       }
-    }
-
-    function connectToAdmins(key) {
-      [1, 2].forEach(slot => {
-        const adminId = `tl-cv-monitor-${key}-s${slot}`;
-        if (!adminConns[adminId] && peer && !peer.disconnected) {
-          const c = peer.connect(adminId, { reliable: true });
-          setupDataConnection(c);
-        }
-      });
     }
 
     function broadcastTelemetry() {
       const payload = {
         type: 'telemetry',
+        userId: userId,
+        username: localStorage.getItem('tl_username') || `Player-${userId}`,
+        device: detectDeviceLabel(),
         page: 'index',
-        slot: document.getElementById('userSlot').value,
         peerId: peer ? peer.id : 'offline',
+        liveScore: 0,
         scores: {
           gestures: parseInt(localStorage.getItem('tl_score_gestures') || '0', 10),
           poses: parseInt(localStorage.getItem('tl_score_poses') || '0', 10),
           bonus: parseInt(localStorage.getItem('tl_score_bonus') || '0', 10)
         },
+        snapshot: captureHubSnapshot(),
         unlockedAll: localStorage.getItem('tl_admin_unlock_all') === 'true',
         timestamp: Date.now()
       };
       Object.values(adminConns).forEach(c => {
-        if (c && c.open) c.send(payload);
+        if (c && c.open) {
+          try { c.send(payload); } catch (e) {}
+        }
       });
     }
 
     async function callPeer() {
       let target = document.getElementById('remotePeerInput').value.trim();
-      const key = document.getElementById('channelKey').value.trim() || 'luna2026';
       if (!target) return;
-      if (/^[1-9]$/.test(target)) {
-        target = `tl-user-${key}-u${target}`;
-      }
-
-      const c = peer.connect(target, { reliable: true });
+      const c = peer.connect(target, { reliable: true, serialization: 'json' });
       setupDataConnection(c);
 
       const stream = await startLocalCamera();
@@ -418,7 +468,9 @@
       activeCall = call;
       document.getElementById('remoteLabel').textContent = call.peer;
       call.on('stream', (remoteStream) => {
-        document.getElementById('remoteVideo').srcObject = remoteStream;
+        const rv = document.getElementById('remoteVideo');
+        rv.srcObject = remoteStream;
+        rv.play().catch(() => {});
       });
       call.on('close', () => {
         document.getElementById('remoteVideo').srcObject = null;
@@ -431,13 +483,8 @@
         activeCall.close();
         activeCall = null;
       }
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-        document.getElementById('localVideo').srcObject = null;
-      }
       document.getElementById('remoteVideo').srcObject = null;
-      logChat('Call & camera ended.', 'sys');
+      logChat('Call ended.', 'sys');
     }
 
     function sendChat() {
@@ -446,7 +493,7 @@
       if (!text) return;
       logChat(`Me: ${text}`, 'me');
       if (activeChatConn && activeChatConn.open) {
-        activeChatConn.send({ type: 'chat', sender: peer.id, text });
+        activeChatConn.send({ type: 'chat', sender: localStorage.getItem('tl_username') || peer.id, text });
       }
       input.value = '';
     }
@@ -464,18 +511,40 @@
       initPeer();
     }
 
-    window.addEventListener('beforeunload', () => {
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
-      if (peer) peer.destroy();
+    function cleanupMedia() {
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch (e) {}
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        startLocalCamera();
+        if (!peer || peer.destroyed || peer.disconnected) {
+          initPeer();
+        } else {
+          const key = document.getElementById('channelKey').value.trim() || 'luna2026';
+          connectToAdmins(key);
+          broadcastTelemetry();
+        }
+      }
     });
 
+    window.addEventListener('pagehide', cleanupMedia);
+    window.addEventListener('beforeunload', cleanupMedia);
+
     updateLevelUI();
+    startLocalCamera();
     initPeer();
-    telemetryTimer = setInterval(() => {
+    setInterval(() => {
       const key = document.getElementById('channelKey').value.trim() || 'luna2026';
       connectToAdmins(key);
       broadcastTelemetry();
-    }, 4000);
+    }, 3000);
   </script>
 </body>
 </html>
