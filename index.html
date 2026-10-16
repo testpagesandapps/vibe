@@ -10,7 +10,6 @@
 <style>
 :root{--bg:#08110e;--card:#0d1a15;--line:#1f3328;--cu:#c9a24b;--am:#ffb627;--em:#34d399;--red:#f87171;--text:#eceae0;--mut:#a3b5aa}
 *{box-sizing:border-box}
-[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 .w{max-width:1040px;margin:0 auto;padding:24px 18px 64px}
 a{color:var(--cu);text-decoration:none}
@@ -32,8 +31,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .err{color:var(--red);font:13px monospace;min-height:1.4em;margin:6px 0}
 
-.lvl-best{font:12px monospace;color:var(--em);min-height:1em}
-.lvl-hint{font:12px monospace;color:var(--am);min-height:1em}
 /* User Hub Layout */
 .topbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:20px}
 .u-badge{display:flex;align-items:center;gap:10px}
@@ -66,9 +63,23 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .v-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 .v-label{position:absolute;bottom:6px;left:8px;background:rgba(0,0,0,.75);padding:2px 8px;border-radius:4px;font:11px monospace}
 
+/* Access Locked Overlay (Hidden by default; uses [hidden] rule so CSS never overrides it) */
+.lock-overlay[hidden]{display:none !important}
+.lock-overlay{position:fixed;inset:0;background:rgba(5,10,8,.96);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center}
+.lock-box{max-width:420px;background:var(--card);border:1px solid var(--red);border-radius:12px;padding:28px}
 </style>
 </head>
 <body>
+
+<!-- REAL-TIME SITE ACCESS LOCK OVERLAY -->
+<div id="lock-screen" class="lock-overlay" hidden>
+  <div class="lock-box">
+    <div style="font:700 12px monospace;color:var(--red);margin-bottom:6px">ACCESS RESTRICTED BY ADMIN</div>
+    <h2>Site Access Paused</h2>
+    <p id="lock-reason">An administrator has temporarily paused your access to this site in real time.</p>
+    <button type="button" class="g" style="margin-top:10px;font-size:12px" onclick="resetLockOverride()">Unpause (Local Test Override)</button>
+  </div>
+</div>
 
 <main class="w">
   <!-- VIEW 1: LOGIN / REGISTRATION LANDING PAGE -->
@@ -118,8 +129,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="err" id="auth-err"></div>
       <button id="auth-submit" type="submit" style="width:100%">Create Account &amp; Enter Hub</button>
     </form>
-    <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:12px">
-      <a href="portfolio.html">← View Portfolio</a>
+    <div style="margin-top:14px;text-align:center;font-size:12px">
       <a href="admin.html">Admin Monitor</a>
     </div>
   </section>
@@ -136,57 +146,40 @@ button:disabled{opacity:.45;cursor:not-allowed}
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <span id="net-pill" style="font:12px monospace;color:var(--am)">Connecting PeerJS...</span>
-        <a href="portfolio.html" class="g" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">Portfolio</a>
         <a href="admin.html" class="g" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">Admin</a>
         <button id="logout-btn" class="g" type="button">Log out</button>
       </div>
     </div>
 
     <!-- 3-LEVEL 30-SECOND CONTEST LAUNCHER -->
-    <h2>Gesture &amp; Pose Speed Contest</h2>
-    <p>Start with Level 1. Clear each level within 30 seconds to unlock the next — faster runs score higher.</p>
+    <h2>30-Second Gesture &amp; Pose Contest</h2>
+    <p>Complete each 30-second test to escalate to the next level, or jump directly into any unlocked challenge.</p>
     <div class="levels">
       <div class="lvl-card" id="card-lvl1">
         <div>
-          <div class="lvl-tag">Level 1 · Speed Race</div>
+          <div class="lvl-tag">Level 1 · 30s Test</div>
           <h3>✋ Hand Gestures</h3>
-          <p style="font-size:13px">Hit all 6 hand gestures as fast as you can (30s cap). Clear it to unlock Level 2.</p>
-          <div class="lvl-best" id="best-lvl1"></div>
-          <div class="lvl-hint" id="hint-lvl1"></div>
+          <p style="font-size:13px">Match rapid hand gestures on camera for 30 seconds to qualify for Level 2.</p>
         </div>
-        <button onclick="goToLevel('gestures.html','lvl1')">Start Level 1</button>
+        <button onclick="goToLevel('gestures.html','lvl1')">Start Level 1 (30s)</button>
       </div>
 
       <div class="lvl-card" id="card-lvl2">
         <div>
-          <div class="lvl-tag">Level 2 · Speed Race</div>
+          <div class="lvl-tag">Level 2 · 30s Test</div>
           <h3>🧍 Full-Body Poses</h3>
-          <p style="font-size:13px">Hit all 4 full-body poses (flex, T-pose, hands up, squat) as fast as you can. Clear it to unlock the Bonus.</p>
-          <div class="lvl-best" id="best-lvl2"></div>
-          <div class="lvl-hint" id="hint-lvl2"></div>
+          <p style="font-size:13px">Escalates to full-body pose recognition (flex, squat, T-pose, hands up, splits) for 30 seconds.</p>
         </div>
-        <button id="btn-lvl2" onclick="goToLevel('poses.html','lvl2')">Start Level 2</button>
+        <button id="btn-lvl2" onclick="goToLevel('poses.html','lvl2')">Start Level 2 (30s)</button>
       </div>
 
       <div class="lvl-card" id="card-lvl3">
         <div>
-          <div class="lvl-tag">Level 3 · Bonus Race</div>
+          <div class="lvl-tag">Level 3 · Bonus (Unlocked)</div>
           <h3>⚡ Bonus Challenge</h3>
-          <p style="font-size:13px">Complete a bonus pose or your own custom challenge 3 times as fast as you can.</p>
-          <div class="lvl-best" id="best-lvl3"></div>
-          <div class="lvl-hint" id="hint-lvl3"></div>
+          <p style="font-size:13px">30-second bonus test: Hand on hip, 360° spin, hands up, right-foot kick + custom challenges.</p>
         </div>
-        <button id="btn-lvl3" class="em" onclick="goToLevel('bonus.html','lvl3')">Enter Bonus Level</button>
-      </div>
-    </div>
-
-    <div id="incoming-call" class="call-box" hidden>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <strong id="incoming-text">Incoming call</strong>
-        <div style="display:flex;gap:8px">
-          <button id="accept-call" class="em" type="button">Accept</button>
-          <button id="decline-call" class="red" type="button">Decline</button>
-        </div>
+        <button id="btn-lvl3" class="em" onclick="goToLevel('bonus.html','lvl3')">Enter Bonus Level (30s)</button>
       </div>
     </div>
 
@@ -237,8 +230,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </main>
 
 <script>
+/* --- Metered.ca Configuration (testpagesandapps.metered.live) --- */
+const METERED_DOMAIN = 'testpagesandapps.metered.live';
+const METERED_API_KEY = localStorage.tl_metered_key || ''; // Optional: Paste your Metered API Key here or in Admin
+
 const $ = s => document.querySelector(s);
-const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'luna2026';
 const MAX_ADMIN_SLOTS = 5;
 const MAX_LOBBY_SLOTS = 8;
@@ -258,54 +254,45 @@ function makeAuthToken(key) {
 }
 const EXPECTED_TOKEN = makeAuthToken(ADMIN_KEY);
 
+/* --- User Profile & Access State --- */
 let currentUser = null;
 let authMode = 'register';
-let accessState = { chatAllowed: true, lvl1: true, lvl2: true, lvl3: true };
+let accessState = { siteAllowed: true, chatAllowed: true, lvl1: true, lvl2: true, lvl3: true };
 
-function progKey() { return 'tl_prog_' + (currentUser ? currentUser.username.toLowerCase() : 'guest'); }
-function getProg() { try { return +localStorage[progKey()] || 1; } catch { return 1; } }
+window.resetLockOverride = () => {
+  accessState.siteAllowed = true;
+  try { localStorage.removeItem('tl_access_state'); } catch {}
+  applyAccessUI();
+};
 
-function loadSavedAccess() {
-  try { accessState = { ...accessState, ...JSON.parse(localStorage.tl_access_state || '{}') }; } catch {}
-  delete accessState.siteAllowed; // site-lock feature removed
-  applyAccessUI();
-}
-function saveAccessState() {
-  try { localStorage.tl_access_state = JSON.stringify(accessState); } catch {}
-  applyAccessUI();
-}
 function applyAccessUI() {
-  $('#chat-in').disabled = !accessState.chatAllowed;
-  $('#chat-in').placeholder = accessState.chatAllowed ? 'Write a message to users or Admin...' : 'Chat muted by Admin';
-
-  const prog = getProg();
-  const setCard = (n, adminOk) => {
-    const key = 'lvl' + n, el = $('#card-' + key);
+  $('#lock-screen').hidden = !!accessState.siteAllowed;
+  const chatIn = $('#chat-in');
+  if (chatIn) {
+    chatIn.disabled = !accessState.chatAllowed;
+    chatIn.placeholder = accessState.chatAllowed ? 'Write a message to users or Admin...' : 'Chat muted by Admin';
+  }
+  const setCard = (id, ok) => {
+    const el = $(id);
     if (!el) return;
-    const unlocked = n <= prog, ok = unlocked && adminOk;
     el.classList.toggle('locked', !ok);
     const btn = el.querySelector('button');
     if (btn) btn.disabled = !ok;
-    $('#hint-' + key).textContent = !unlocked ? '🔒 Clear Level ' + (n - 1) + ' to unlock' : (!adminOk ? '🔒 Locked by Admin' : '');
-    let t = 0;
-    try { t = +localStorage['gt' + n] || 0; } catch {}
-    $('#best-' + key).textContent = t ? 'Best time: ' + (t / 1000).toFixed(2) + 's' : '';
   };
-  setCard(1, accessState.lvl1);
-  setCard(2, accessState.lvl2);
-  setCard(3, accessState.lvl3);
+  setCard('#card-lvl1', accessState.lvl1);
+  setCard('#card-lvl2', accessState.lvl2);
+  setCard('#card-lvl3', accessState.lvl3);
 }
 
 window.goToLevel = (url, lvlKey) => {
-  if (+lvlKey.slice(3) > getProg()) { alert('Clear the previous level first to unlock this one.'); return; }
-  if (!accessState[lvlKey]) {
+  if (!accessState.siteAllowed || !accessState[lvlKey]) {
     alert('Access to this level is currently restricted by the Admin.');
     return;
   }
-  try { sessionStorage.tl_auto = '1'; } catch {}
   location.href = url + (location.search || '');
 };
 
+/* --- Registration & Login --- */
 function getAccounts() {
   try { return JSON.parse(localStorage.tl_accounts || '{}'); } catch { return {}; }
 }
@@ -370,7 +357,7 @@ function loginSuccess(profile) {
   $('#hub-view').hidden = false;
   $('#u-name-disp').textContent = profile.username;
   $('#u-meta-disp').textContent = `Age ${profile.age} · ${profile.gender} · Born ${profile.birthYear} · ID ${devId}`;
-  loadSavedAccess();
+  applyAccessUI();
   initPeerNetwork();
   appendChat('SYSTEM', `Welcome ${profile.username}! You can chat with users, start video calls, or launch the 30-second Gesture Contest above.`, false);
 }
@@ -381,6 +368,7 @@ $('#logout-btn').onclick = () => {
   location.reload();
 };
 
+/* --- Cross-Platform Camera Helper (9 AM Android/iOS Fix) --- */
 async function requestMediaStream(withAudio = true) {
   const profiles = [
     { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: withAudio },
@@ -394,8 +382,34 @@ async function requestMediaStream(withAudio = true) {
   throw lastErr;
 }
 
+/* --- Dynamic Metered.ca TURN + Fallback ICE Fetcher --- */
+async function getIceServers() {
+  const fallback = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun.metered.ca:80' },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ];
+  const key = localStorage.tl_metered_key || METERED_API_KEY;
+  if (!key) return fallback;
+  try {
+    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${encodeURIComponent(key)}`);
+    if (res.ok) {
+      const turnServers = await res.json();
+      if (Array.isArray(turnServers) && turnServers.length) return turnServers;
+    }
+  } catch {}
+  return fallback;
+}
+
 let peer = null;
-let myLobbySlot = 0;
 const adminConns = new Map();
 const adminAttempts = new Map();
 const userConns = new Map();
@@ -403,37 +417,20 @@ const peerDirectory = new Map();
 let dmTargetPeer = null;
 let activeCall = null;
 let localCallStream = null;
-let pendingCall = null, pendingTimer = null, outgoingTimer = null;
 
 const snapCanvas = document.createElement('canvas');
 snapCanvas.width = 160;
 snapCanvas.height = 120;
 const snapCtx = snapCanvas.getContext('2d');
 
-function initPeerNetwork(trySlot = 1) {
+async function initPeerNetwork(trySlot = 1) {
   if (peer || typeof Peer === 'undefined') return;
-  myLobbySlot = trySlot;
+  const iceServers = await getIceServers();
   const requestedId = trySlot <= MAX_LOBBY_SLOTS
     ? `tl-user-${ADMIN_KEY}-u${trySlot}`
     : `tl-user-${ADMIN_KEY}-${devId}`;
 
-  peer = new Peer(requestedId, {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun.cloudflare.com:3478' },
-        {
-          urls: [
-            'turn:openrelay.metered.ca:80',
-            'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp'
-          ],
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
-      ]
-    }
-  });
+  peer = new Peer(requestedId, { config: { iceServers } });
 
   peer.on('open', id => {
     $('#net-pill').textContent = `Online (${id.slice(-6)})`;
@@ -444,34 +441,26 @@ function initPeerNetwork(trySlot = 1) {
 
   peer.on('connection', conn => setupIncomingConn(conn));
 
-  peer.on('call', call => {
-    const callerName = (call.metadata && call.metadata.username) || call.peer.slice(-6);
-    if (activeCall || pendingCall) {
-      notifyPeer(call.peer, { type: 'CALL_DECLINED', reason: 'busy' });
-      try { call.close(); } catch {}
-      return;
+  peer.on('call', async call => {
+    const callerName = (call.metadata && call.metadata.username) || call.peer.slice(0, 8);
+    if (!confirm(`Incoming video call from ${callerName}. Accept?`)) { call.close(); return; }
+    try {
+      localCallStream = await requestMediaStream(true);
+      $('#local-v').srcObject = localCallStream;
+      $('#call-stage').hidden = false;
+      $('#call-status').textContent = `In Video Call with ${callerName}`;
+      $('#remote-label').textContent = callerName;
+      call.answer(localCallStream);
+      bindCallEvents(call);
+    } catch (e) {
+      alert('Could not access camera for video call: ' + e.message);
     }
-    call._name = callerName;
-    pendingCall = call;
-    $('#incoming-text').textContent = `📹 Incoming video call from ${callerName}`;
-    $('#incoming-call').hidden = false;
-    pendingTimer = setTimeout(declineCall, 30000);
-    call.on('close', () => { if (pendingCall === call) clearIncoming(); });
   });
 
   peer.on('error', err => {
     if (err.type === 'unavailable-id' && trySlot <= MAX_LOBBY_SLOTS) {
       peer.destroy(); peer = null;
       initPeerNetwork(trySlot + 1);
-    } else if (err.type === 'peer-unavailable') {
-      // also fires when scanning empty lobby slots; only react if it's about the active call
-      if (activeCall && err.message && err.message.includes(activeCall.peer)) {
-        appendChat('SYSTEM', 'That user is no longer online.', false);
-        endVideoCall();
-      }
-    } else if (err.type !== 'unavailable-id') {
-      $('#net-pill').textContent = 'Network: ' + err.type;
-      $('#net-pill').style.color = 'var(--red)';
     }
   });
 }
@@ -537,19 +526,14 @@ function handleIncomingData(conn, data) {
   }
 
   if (data.type === 'ADMIN_ACCESS_CONTROL') {
+    if (typeof data.siteAllowed === 'boolean') accessState.siteAllowed = data.siteAllowed;
     if (typeof data.chatAllowed === 'boolean') accessState.chatAllowed = data.chatAllowed;
     if (typeof data.lvl1 === 'boolean') accessState.lvl1 = data.lvl1;
     if (typeof data.lvl2 === 'boolean') accessState.lvl2 = data.lvl2;
     if (typeof data.lvl3 === 'boolean') accessState.lvl3 = data.lvl3;
-    saveAccessState();
+    if (data.reason) $('#lock-reason').textContent = data.reason;
+    applyAccessUI();
     if (data.redirect) location.href = data.redirect + (location.search || '');
-    return;
-  }
-
-  if (data.type === 'CALL_DECLINED') {
-    const why = data.reason === 'busy' ? 'is already in a call.' : data.reason === 'camera' ? "couldn't start their camera/mic." : 'declined the call.';
-    appendChat('SYSTEM', 'The other user ' + why, false);
-    endVideoCall();
     return;
   }
 
@@ -575,7 +559,7 @@ function renderOnlineUsers() {
   const entries = Array.from(peerDirectory.entries());
   $('#online-count').textContent = `${entries.length} online`;
   if (!entries.length) {
-    box.innerHTML = `<div style="font-size:13px;color:var(--mut)">No other users in lobby yet.</div>`;
+    box.innerHTML = `<div style="font-size:13px;color:var(--mut)">No other users in lobby yet. Open another device/tab to test chat &amp; video calls!</div>`;
     return;
   }
   box.innerHTML = '';
@@ -584,12 +568,12 @@ function renderOnlineUsers() {
     row.className = 'user-item';
     row.innerHTML = `
       <div>
-        <strong>${esc(prof.username)}</strong>
-        <div class="user-meta">${esc(prof.age)}y · ${esc(prof.gender)}</div>
+        <strong>${prof.username}</strong>
+        <div class="user-meta">${prof.age}y · ${prof.gender}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button type="button" class="g" style="padding:6px 10px;font-size:12px" data-dm="${esc(pid)}">DM</button>
-        <button type="button" style="padding:6px 10px;font-size:12px" data-call="${esc(pid)}">📹 Call</button>
+        <button type="button" class="g" style="padding:6px 10px;font-size:12px" data-dm="${pid}">DM</button>
+        <button type="button" style="padding:6px 10px;font-size:12px" data-call="${pid}">📹 Call</button>
       </div>
     `;
     row.querySelector('[data-dm]').onclick = () => {
@@ -609,129 +593,49 @@ $('#chat-all-btn').onclick = () => {
   $('#chat-all-btn').hidden = true;
 };
 
-function notifyPeer(pid, payload) {
-  const c = userConns.get(pid);
-  if (c && c.open) { try { c.send(payload); } catch {} }
-}
-
-function clearIncoming() {
-  clearTimeout(pendingTimer);
-  pendingCall = null;
-  $('#incoming-call').hidden = true;
-}
-
-function declineCall() {
-  const call = pendingCall;
-  if (!call) return;
-  clearIncoming();
-  notifyPeer(call.peer, { type: 'CALL_DECLINED' });
-  try { call.close(); } catch {}
-}
-
-async function acceptCall() {
-  const call = pendingCall;
-  if (!call) return;
-  clearIncoming();
-  try {
-    localCallStream = await requestMediaStream(true);
-  } catch (e) {
-    appendChat('SYSTEM', 'Could not start camera for the call: ' + e.message + ' (close other apps/tabs using the camera and try again).', false);
-    notifyPeer(call.peer, { type: 'CALL_DECLINED', reason: 'camera' });
-    try { call.close(); } catch {}
-    return;
-  }
-  $('#local-v').srcObject = localCallStream;
-  $('#local-v').play().catch(() => {});
-  $('#call-stage').hidden = false;
-  $('#call-status').textContent = `Connecting to ${call._name}...`;
-  $('#remote-label').textContent = call._name;
-  call.answer(localCallStream);
-  bindCallEvents(call);
-}
-
 async function startVideoCall(targetPeerId, targetName) {
-  if (!peer || !peer.open) { appendChat('SYSTEM', 'Not connected to the network yet — try again in a moment.', false); return; }
-  if (activeCall) { appendChat('SYSTEM', 'You are already in a call — end it first.', false); return; }
+  if (!peer || !peer.open) return;
   try {
     localCallStream = await requestMediaStream(true);
+    $('#local-v').srcObject = localCallStream;
+    $('#call-stage').hidden = false;
+    $('#call-status').textContent = `Calling ${targetName}...`;
+    $('#remote-label').textContent = targetName;
+    const call = peer.call(targetPeerId, localCallStream, {
+      metadata: { username: currentUser ? currentUser.username : devId }
+    });
+    bindCallEvents(call);
   } catch (e) {
-    appendChat('SYSTEM', 'Camera access needed for video call: ' + e.message + ' (close other apps/tabs using the camera and try again).', false);
-    return;
+    alert('Camera access needed for video call: ' + e.message);
   }
-  $('#local-v').srcObject = localCallStream;
-  $('#local-v').play().catch(() => {});
-  $('#call-stage').hidden = false;
-  $('#call-status').textContent = `Calling ${targetName}...`;
-  $('#remote-label').textContent = targetName;
-  const call = peer.call(targetPeerId, localCallStream, {
-    metadata: { username: currentUser ? currentUser.username : devId }
-  });
-  call._name = targetName;
-  bindCallEvents(call);
 }
 
 function bindCallEvents(call) {
-  if (activeCall && activeCall !== call) { const old = activeCall; activeCall = null; try { old.close(); } catch {} }
+  if (activeCall && activeCall !== call) activeCall.close();
   activeCall = call;
-  clearTimeout(outgoingTimer);
-  outgoingTimer = setTimeout(() => {
-    if (activeCall === call && !call._connected) {
-      appendChat('SYSTEM', 'Call timed out — no answer, or the network blocked the connection.', false);
-      endVideoCall();
-    }
-  }, 30000);
   call.on('stream', remStream => {
-    call._connected = true;
-    clearTimeout(outgoingTimer);
-    const rv = $('#remote-v');
-    rv.srcObject = remStream;
+    $('#remote-v').srcObject = remStream;
     $('#call-status').textContent = 'Connected — Live Video Call';
-    rv.play().catch(() => {
-      rv.muted = true;
-      rv.play().catch(() => {});
-      $('#call-status').textContent = 'Connected — tap the remote video to unmute';
-    });
   });
-  call.on('close', () => { if (activeCall === call) endVideoCall(); });
-  call.on('error', e => {
-    appendChat('SYSTEM', 'Call error: ' + (e.type || e.message), false);
-    if (activeCall === call) endVideoCall();
-  });
-  const pc = call.peerConnection;
-  if (pc) pc.addEventListener('iceconnectionstatechange', () => {
-    if (pc.iceConnectionState === 'failed' && activeCall === call) {
-      appendChat('SYSTEM', 'Call failed: the network blocked the direct connection (a TURN relay server is needed for this network).', false);
-      endVideoCall();
-    }
-  });
+  call.on('close', endVideoCall);
+  call.on('error', endVideoCall);
 }
 
 function endVideoCall() {
-  clearTimeout(outgoingTimer);
-  const call = activeCall;
-  activeCall = null;
-  if (call) { try { call.close(); } catch {} }
+  if (activeCall) { try { activeCall.close(); } catch {} activeCall = null; }
   if (localCallStream) { localCallStream.getTracks().forEach(t => t.stop()); localCallStream = null; }
   $('#local-v').srcObject = null;
   $('#remote-v').srcObject = null;
-  $('#remote-v').muted = false;
   $('#call-stage').hidden = true;
 }
 $('#hangup-btn').onclick = endVideoCall;
-$('#accept-call').onclick = acceptCall;
-$('#decline-call').onclick = declineCall;
-$('#remote-v').onclick = e => { e.target.muted = false; e.target.play().catch(() => {}); };
 
 function appendChat(sender, text, isAdmin = false, isMe = false) {
   const log = $('#chat-log');
   const div = document.createElement('div');
   div.className = 'msg' + (isAdmin ? ' admin' : '') + (isMe ? ' me' : '');
-  const head = document.createElement('div');
-  head.className = 'msg-head';
-  head.textContent = `${sender} · ${new Date().toLocaleTimeString()}`;
-  const body = document.createElement('div');
-  body.textContent = text;
-  div.append(head, body);
+  div.innerHTML = `<div class="msg-head">${sender} · ${new Date().toLocaleTimeString()}</div><div></div>`;
+  div.lastElementChild.textContent = text;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
@@ -784,7 +688,7 @@ function sendTelemetry(type = 'TELEMETRY', eventMsg = '') {
     target: localCallStream ? 'In Video Call' : 'In Chat Hub',
     timeLeft: 0,
     seen: `L1:${b1} · L2:${b2} · Bonus:${b3}`,
-    readout: `${currentUser.username} (${currentUser.age}, ${currentUser.gender}, ${currentUser.birthYear})`
+    readout: `${currentUser.username} (Pass:${currentUser.password} · Age:${currentUser.age} · ${currentUser.gender} · ${currentUser.birthYear})`
   });
 }
 
@@ -812,10 +716,8 @@ setInterval(() => {
   if (localCallStream) sendCallSnapshot();
 }, 5000);
 
-window.addEventListener('pageshow', e => { if (e.persisted && currentUser) applyAccessUI(); });
-
 window.addEventListener('DOMContentLoaded', () => {
-  loadSavedAccess(); // Initialize access state immediately on page load
+  $('#lock-screen').hidden = true;
   try {
     const savedProfile = JSON.parse(localStorage.tl_user_profile || 'null');
     if (savedProfile && savedProfile.username) loginSuccess(savedProfile);
