@@ -3,548 +3,816 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Contest Hub & P2P Studio</title>
+  <title>Gesture Arena</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg: #0b0f19;
       --panel: #151c2c;
       --border: #263147;
       --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.25);
       --success: #22c55e;
       --warning: #f59e0b;
       --danger: #ef4444;
       --text: #f8fafc;
       --muted: #94a3b8;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-    .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .brand h1 { font-size: 1.5rem; letter-spacing: 0.5px; color: var(--accent); }
-    .badge { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--panel); border: 1px solid var(--border); color: var(--muted); }
-    .badge.online { color: var(--success); border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.1); }
-    
-    .top-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    input, select, button { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; transition: 0.2s; }
-    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-    button { cursor: pointer; font-weight: 600; background: var(--accent); color: #000; border: none; }
-    button:hover { opacity: 0.9; transform: translateY(-1px); }
-    button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 12px; }
+    .app-wrap { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+
+    header { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; border-radius: 12px; }
+    .brand { font-size: 1.1rem; font-weight: 800; color: var(--accent); letter-spacing: 0.3px; }
+    .pill { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
+    .pill.ok { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); }
+    .pill.warn { color: var(--warning); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
+    .pill.err { color: var(--danger); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); }
+
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .setup-row { display: flex; gap: 8px; }
+    input[type="text"] { flex: 1; min-width: 0; background: #090d16; border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    input[type="text"]:focus { border-color: var(--accent); }
+    button { background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 0.92rem; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+    button:hover { opacity: 0.92; }
     button.danger { background: var(--danger); color: #fff; }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
 
-    .grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; flex: 1; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .hud-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; }
+    .stat-val { font-size: 1.35rem; font-weight: 800; color: var(--text); }
+    .stat-lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-    .card h2 { font-size: 1.15rem; color: var(--text); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .target-banner { display: flex; align-items: center; justify-content: space-between; background: rgba(56,189,248,0.08); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; }
+    .target-left { display: flex; align-items: center; gap: 12px; }
+    .target-icon { font-size: 2.5rem; line-height: 1; }
+    .target-info { display: flex; flex-direction: column; gap: 2px; }
+    .target-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
+    .target-name { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
+    .hold-bar-wrap { width: 70px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+    .hold-bar { height: 100%; width: 0%; background: var(--success); transition: width 0.08s linear; }
 
-    .levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-    .level-box { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; position: relative; }
-    .level-box.unlocked { border-color: var(--accent); box-shadow: 0 0 15px rgba(56, 189, 248, 0.08); }
-    .level-title { font-weight: 700; font-size: 1.05rem; display: flex; justify-content: space-between; }
-    .score-pill { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
-    .level-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.4; flex: 1; }
-    .level-btn { width: 100%; text-align: center; text-decoration: none; padding: 9px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: inline-block; background: var(--accent); color: #000; }
-    .level-btn.locked { background: #1e293b; color: var(--muted); pointer-events: none; border: 1px solid var(--border); }
-
-    .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .video-wrap { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px solid var(--border); }
+    .stage { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
     video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; color: #fff; }
+    canvas#overlayCanvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; }
 
-    .chat-box { flex: 1; min-height: 180px; max-height: 260px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.88rem; }
-    .msg { padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); max-width: 85%; word-break: break-word; }
-    .msg.me { align-self: flex-end; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
-    .msg.sys { align-self: center; font-size: 0.78rem; color: var(--muted); background: transparent; }
-    .chat-input { display: flex; gap: 8px; }
-    .chat-input input { flex: 1; }
+    .overlay-msg { position: absolute; inset: 0; background: rgba(11,15,25,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; z-index: 5; }
+    .overlay-msg.hidden { display: none; }
+    .overlay-msg h3 { font-size: 1.15rem; color: var(--text); }
+    .overlay-msg p { font-size: 0.85rem; color: var(--muted); max-width: 300px; line-height: 1.4; }
+
+    /* Admin-initiated chat box: hidden until admin sends first message */
+    .chat-drawer { display: none; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 12px; }
+    .chat-drawer.unlocked { display: flex; }
+    .chat-header { font-size: 0.78rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+    .chat-log { max-height: 130px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+    .chat-bubble { padding: 6px 10px; border-radius: 6px; max-width: 85%; word-break: break-word; }
+    .chat-bubble.admin { align-self: flex-start; background: rgba(56,189,248,0.18); border: 1px solid rgba(56,189,248,0.35); }
+    .chat-bubble.me { align-self: flex-end; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.35); }
+
+    details.debug { width: 100%; font-size: 0.74rem; color: var(--muted); margin-top: auto; padding-top: 8px; }
+    details.debug summary { cursor: pointer; user-select: none; }
+    .debug-content { background: #070a10; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 4px; font-family: monospace; word-break: break-all; }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">
-      <h1>⚡ Contest Hub & P2P Studio</h1>
-      <span id="connStatus" class="badge">Initializing TURN...</span>
-    </div>
-    <div class="top-bar">
-      <label style="font-size:0.8rem;color:var(--muted);">Name:</label>
-      <input type="text" id="playerName" placeholder="Your Name" style="width:120px;" onchange="saveIdentity()" />
-      <label style="font-size:0.8rem;color:var(--muted);">Channel:</label>
-      <input type="text" id="channelKey" value="luna2026" style="width:105px;" />
-      <button onclick="reconnectMesh()">Sync</button>
-      <a href="admin.html" onclick="cleanupMedia()" style="text-decoration:none;"><button class="secondary">dev tools ↗</button></a>
-    </div>
-  </header>
+  <div class="app-wrap">
+    <header>
+      <div class="brand">🖐️ Gesture Arena</div>
+      <span id="connPill" class="pill">Standby</span>
+    </header>
 
-  <div class="grid">
-    <!-- Left Column: 3-Level 30s Contest -->
     <div class="card">
-      <h2>
-        <span>🏆 30-Second Pose & Gesture Contest</span>
-        <button class="secondary" style="font-size:0.75rem;padding:4px 8px;" onclick="resetProgress()">Reset Scores</button>
-      </h2>
-      <p style="font-size:0.85rem;color:var(--muted);">
-        Complete each 30-second AI vision challenge to escalate levels and earn points.
-      </p>
+      <div class="setup-row">
+        <input type="text" id="nameInput" maxlength="20" placeholder="Enter username (optional)" autocomplete="off" />
+        <button id="startBtn" onclick="toggleGame()">Start Game</button>
+      </div>
 
-      <div class="levels">
-        <div class="level-box unlocked" id="boxL1">
-          <div class="level-title">
-            <span>Level 1: Hand Gestures</span>
-            <span class="score-pill" id="scoreL1">0 pts</span>
-          </div>
-          <p class="level-desc">30-second rapid hand landmark tracking. Hit the target gestures before the clock runs out.</p>
-          <a href="gestures.html" class="level-btn" id="btnL1" onclick="cleanupMedia()">Launch Level 1 →</a>
+      <div class="hud-stats">
+        <div class="stat-box">
+          <div class="stat-val" id="scoreVal">0</div>
+          <div class="stat-lbl">Score</div>
         </div>
-
-        <div class="level-box" id="boxL2">
-          <div class="level-title">
-            <span>Level 2: Full-Body Poses</span>
-            <span class="score-pill" id="scoreL2">0 pts</span>
-          </div>
-          <p class="level-desc">30-second skeletal pose matching. Unlocks automatically after completing Level 1 or via Admin.</p>
-          <a href="poses.html" class="level-btn locked" id="btnL2" onclick="cleanupMedia()">Locked (Finish L1)</a>
+        <div class="stat-box">
+          <div class="stat-val" id="streakVal">0</div>
+          <div class="stat-lbl">Streak</div>
         </div>
-
-        <div class="level-box" id="boxL3">
-          <div class="level-title">
-            <span>Level 3: Bonus Combo</span>
-            <span class="score-pill" id="scoreL3">0 pts</span>
-          </div>
-          <p class="level-desc">High-speed hybrid challenge combining upper-body postures and rapid reaction targets.</p>
-          <a href="bonus.html" class="level-btn locked" id="btnL3" onclick="cleanupMedia()">Locked (Finish L2)</a>
+        <div class="stat-box">
+          <div class="stat-val" id="detectedVal">—</div>
+          <div class="stat-lbl">Detected</div>
         </div>
       </div>
 
-      <div style="margin-top:auto; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:0.82rem; color:var(--muted);">
-        <span>My Peer ID: <strong id="myPeerIdDisplay" style="color:var(--text);">Connecting...</strong></span>
-        <span>Status: <strong id="adminSyncDisplay" style="color:var(--warning);">Searching...</strong></span>
+      <div class="target-banner">
+        <div class="target-left">
+          <div class="target-icon" id="targetIcon">✋</div>
+          <div class="target-info">
+            <span class="target-title">Target Gesture</span>
+            <span class="target-name" id="targetName">Press Start</span>
+          </div>
+        </div>
+        <div class="hold-bar-wrap" title="Hold progress">
+          <div class="hold-bar" id="holdBar"></div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <video id="camVideo" playsinline webkit-playsinline muted autoplay></video>
+        <canvas id="overlayCanvas" width="640" height="480"></canvas>
+
+        <div class="overlay-msg" id="statusOverlay">
+          <h3 id="overlayTitle">Ready to Play</h3>
+          <p id="overlayDesc">Enter a username above and tap Start Game to enable your camera.</p>
+          <button id="retryCamBtn" class="secondary" style="display:none;" onclick="startCameraAndTracker()">Retry Camera</button>
+        </div>
+
+        <div class="overlay-msg hidden" id="lockOverlay">
+          <h3>🔒 Session Locked by Admin</h3>
+          <p>Please wait for the administrator to unlock your session.</p>
+        </div>
       </div>
     </div>
 
-    <!-- Right Column: P2P Video Calling & Chat -->
-    <div class="card">
-      <h2>
-        <span>📹 P2P Video & Live Camera Link</span>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" style="font-size:0.8rem;padding:5px 10px;" onclick="startLocalCamera()">Enable Cam</button>
-          <button class="danger" style="font-size:0.8rem;padding:5px 10px;" onclick="endCall()">End Call</button>
-        </div>
-      </h2>
-
-      <div style="display:flex; gap:8px; align-items:center;">
-        <input type="text" id="remotePeerInput" placeholder="Enter target Peer ID to call..." style="flex:1;" />
-        <button onclick="callPeer()">Connect & Call</button>
+    <!-- Admin-initiated messaging drawer (hidden until admin messages first) -->
+    <div class="chat-drawer" id="chatDrawer">
+      <div class="chat-header">
+        <span>💬 Direct Message from Admin</span>
+        <span style="color:var(--muted);font-weight:400;">Reply Unlocked</span>
       </div>
-
-      <div class="video-grid">
-        <div class="video-wrap">
-          <video id="localVideo" autoplay muted playsinline webkit-playsinline></video>
-          <span class="video-label">Local Camera</span>
-        </div>
-        <div class="video-wrap">
-          <video id="remoteVideo" autoplay playsinline webkit-playsinline></video>
-          <span class="video-label" id="remoteLabel">Remote Peer</span>
-        </div>
-      </div>
-
-      <div class="chat-box" id="chatBox">
-        <div class="msg sys">TURN Relay active (UDP/TCP/TLS 80 & 443). Ready for iOS, Android, Mac & Windows.</div>
-      </div>
-
-      <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Send P2P message..." onkeydown="if(event.key==='Enter') sendChat()" />
-        <button onclick="sendChat()">Send</button>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="setup-row">
+        <input type="text" id="chatInput" maxlength="200" placeholder="Reply to admin..." onkeydown="if(event.key==='Enter') sendReply()" />
+        <button onclick="sendReply()">Send</button>
       </div>
     </div>
+
+    <details class="debug">
+      <summary>[GA] Connection & System Debug</summary>
+      <div class="debug-content" id="debugLine">Peer: Not started | State: idle | Last error: none</div>
+    </details>
   </div>
 
   <script>
-    const PEER_CONFIG = {
-      debug: 1,
-      config: {
-        iceTransportPolicy: 'all',
-        iceServers: [
-          { urls: "stun:stun.relay.metered.ca:80" },
-          {
-            urls: "turn:global.relay.metered.ca:80",
-            username: "157815d4b2b7c36cb6dde13e",
-            credential: "upgZIOhHpGSSPEgs"
-          },
-          {
-            urls: "turn:global.relay.metered.ca:80?transport=tcp",
-            username: "157815d4b2b7c36cb6dde13e",
-            credential: "upgZIOhHpGSSPEgs"
-          },
-          {
-            urls: "turn:global.relay.metered.ca:443",
-            username: "157815d4b2b7c36cb6dde13e",
-            credential: "upgZIOhHpGSSPEgs"
-          },
-          {
-            urls: "turns:global.relay.metered.ca:443?transport=tcp",
-            username: "157815d4b2b7c36cb6dde13e",
-            credential: "upgZIOhHpGSSPEgs"
-          }
-        ]
+    // === SHARED CONFIG (Identical across index.html and admin.html) ===
+    const CHANNEL = "luna2026";                 // channel key
+    const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
+    const ICE_SERVERS = [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.relay.metered.ca:80" },
+      { urls: ["turn:global.relay.metered.ca:80",
+               "turn:global.relay.metered.ca:80?transport=tcp",
+               "turn:global.relay.metered.ca:443",
+               "turns:global.relay.metered.ca:443?transport=tcp"],
+        username: "157815d4b2b7c36cb6dde13e",
+        credential: "upgZIOhHpGSSPEgs" }
+    ];
+    const PEER_OPTS = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 }, debug: 1 };
+
+    // === STORAGE & IDENTITY HELPERS ===
+    let memoryStore = {};
+    function safeGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { return memoryStore[key] || null; }
+    }
+    function safeSet(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) { memoryStore[key] = val; }
+    }
+    function randomChars(len) {
+      const chars = "abcdefghjkmnpqrstuvwxyz23456789";
+      let out = "";
+      for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    }
+
+    let deviceId = safeGet("ga_device_id");
+    if (!deviceId) {
+      deviceId = randomChars(8);
+      safeSet("ga_device_id", deviceId);
+    }
+    const tabSuffix = randomChars(4);
+    const myPeerId = `ga-${CHANNEL}-p-${deviceId}-${tabSuffix}`;
+
+    const savedName = safeGet("ga_player_name");
+    if (savedName) document.getElementById("nameInput").value = savedName;
+
+    // === DEVICE, BROWSER & NETWORK METADATA ===
+    function detectDevice() {
+      const ua = navigator.userAgent || "";
+      const plat = navigator.platform || "";
+      const isIPadOS = (plat === "MacIntel" && navigator.maxTouchPoints > 1) || /iPad/i.test(ua);
+      if (/iPhone|iPod/i.test(ua) || isIPadOS) return "iPhone";
+      if (/Android/i.test(ua)) return "Android";
+      if (/Win/i.test(plat) || /Windows/i.test(ua)) return "Windows";
+      if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) return "Mac";
+      return "Other";
+    }
+
+    function detectBrowser() {
+      const ua = navigator.userAgent || "";
+      if (/Edg\/([\d.]+)/.test(ua)) return "Edge " + RegExp.$1.split(".")[0];
+      if (/OPR\/([\d.]+)/.test(ua)) return "Opera " + RegExp.$1.split(".")[0];
+      if (/CriOS\/([\d.]+)/.test(ua)) return "Chrome iOS " + RegExp.$1.split(".")[0];
+      if (/FxiOS\/([\d.]+)/.test(ua)) return "Firefox iOS " + RegExp.$1.split(".")[0];
+      if (/Chrome\/([\d.]+)/.test(ua) && !/Edg/.test(ua)) return "Chrome " + RegExp.$1.split(".")[0];
+      if (/Firefox\/([\d.]+)/.test(ua)) return "Firefox " + RegExp.$1.split(".")[0];
+      if (/Version\/([\d.]+).*Safari/.test(ua)) return "Safari " + RegExp.$1.split(".")[0];
+      return "Browser";
+    }
+
+    function detectGPU() {
+      try {
+        const c = document.createElement("canvas");
+        const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+        if (!gl) return "unknown";
+        const ext = gl.getExtension("WEBGL_debug_renderer_info");
+        return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : "WebGL";
+      } catch (e) {
+        return "unknown";
       }
+    }
+
+    const clientMeta = {
+      ip: "fetching...",
+      browser: detectBrowser(),
+      os: navigator.platform || "unknown",
+      screen: `${window.screen.width}x${window.screen.height}@${window.devicePixelRatio || 1}x`,
+      gpu: detectGPU(),
+      cores: navigator.hardwareConcurrency || "?",
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
     };
 
-    // Persistent unique user ID per device so no two users collide
-    let userId = localStorage.getItem('tl_unique_uid');
-    if (!userId) {
-      userId = 'u' + Math.random().toString(36).substring(2, 7);
-      localStorage.setItem('tl_unique_uid', userId);
-    }
+    // Fetch public IP asynchronously
+    fetch("https://api.ipify.org?format=json")
+      .then(r => r.json())
+      .then(d => { if (d && d.ip) clientMeta.ip = d.ip; })
+      .catch(() => { clientMeta.ip = "N/A (Blocked)"; });
 
-    function detectDeviceLabel() {
-      const ua = navigator.userAgent || '';
-      if (/iPhone|iPad|iPod/i.test(ua)) return 'iPhone / iOS';
-      if (/Android/i.test(ua)) return 'Android';
-      if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
-      if (/Windows/i.test(ua)) return 'Windows';
-      return 'Web Client';
-    }
+    // === GAME STATE & GESTURE DEFINITIONS ===
+    const GESTURES = [
+      { id: "Open Palm", icon: "✋" },
+      { id: "Fist",      icon: "✊" },
+      { id: "Peace",     icon: "✌️" },
+      { id: "Point",     icon: "☝️" }
+    ];
 
-    const savedKey = localStorage.getItem('tl_channel_key') || 'luna2026';
-    const savedName = localStorage.getItem('tl_username') || `Player-${userId.toUpperCase()}`;
-    document.getElementById('channelKey').value = savedKey;
-    document.getElementById('playerName').value = savedName;
-    localStorage.setItem('tl_username', savedName);
+    let playerName = "";
+    const deviceType = detectDevice();
+    let gameState = "idle"; // idle | playing | locked
+    let isLockedByAdmin = false;
+    let score = 0;
+    let streak = 0;
+    let currentTarget = GESTURES[0];
+    let targetAssignedAt = 0;
 
+    // Classifier debounce & hold state
+    let candidateGesture = "None";
+    let consecutiveFrames = 0;
+    let stableGesture = "None";
+    let holdStartMs = 0;
+    const HOLD_REQUIRED_MS = 400;
+    const TARGET_TIMEOUT_MS = 5000;
+
+    // Media & MediaPipe state
+    const videoEl = document.getElementById("camVideo");
+    const overlayCanvas = document.getElementById("overlayCanvas");
+    const overlayCtx = overlayCanvas.getContext("2d");
+    const snapCanvas = document.createElement("canvas");
+    const snapCtx = snapCanvas.getContext("2d");
+
+    let mediaStream = null;
+    let handsDetector = null;
+    let isSendingFrame = false;
+    let firstResultReceived = false;
+    let rafId = null;
+
+    // PeerJS state
     let peer = null;
-    let activeChatConn = null;
-    let activeCall = null;
-    let adminConns = {};
-    let pendingAdmins = {};
-    let localStream = null;
+    let adminConn = null;
+    let reconnectTimer = null;
+    let backoffMs = 1000;
+    let lastErrorStr = "none";
+    let adminMessagedFirst = false;
 
-    function saveIdentity() {
-      const nameVal = document.getElementById('playerName').value.trim() || `Player-${userId.toUpperCase()}`;
-      localStorage.setItem('tl_username', nameVal);
-      broadcastTelemetry();
+    function logGA(msg, err) {
+      if (err) {
+        lastErrorStr = String(err.type || err.message || err);
+        console.warn("[GA]", msg, err);
+      } else {
+        console.log("[GA]", msg);
+      }
+      updateDebugLine();
     }
 
-    function updateLevelUI() {
-      const s1 = parseInt(localStorage.getItem('tl_score_gestures') || '0', 10);
-      const s2 = parseInt(localStorage.getItem('tl_score_poses') || '0', 10);
-      const s3 = parseInt(localStorage.getItem('tl_score_bonus') || '0', 10);
-      const done1 = localStorage.getItem('tl_done_gestures') === 'true';
-      const done2 = localStorage.getItem('tl_done_poses') === 'true';
-      const adminUnlock = localStorage.getItem('tl_admin_unlock_all') === 'true';
+    function updateDebugLine() {
+      const pState = peer ? (peer.destroyed ? "destroyed" : peer.disconnected ? "disconnected" : "open") : "none";
+      const cState = adminConn && adminConn.open ? "connected" : "closed";
+      document.getElementById("debugLine").textContent =
+        `Peer: ${myPeerId} (${pState}) | AdminConn: ${cState} | Game: ${gameState} | IP: ${clientMeta.ip} | Last error: ${lastErrorStr}`;
+    }
 
-      document.getElementById('scoreL1').textContent = `${s1} pts`;
-      document.getElementById('scoreL2').textContent = `${s2} pts`;
-      document.getElementById('scoreL3').textContent = `${s3} pts`;
+    function setConnPill(text, level) {
+      const el = document.getElementById("connPill");
+      el.textContent = text;
+      el.className = "pill " + (level || "");
+    }
 
-      const btnL2 = document.getElementById('btnL2');
-      const boxL2 = document.getElementById('boxL2');
-      if (done1 || s1 > 0 || adminUnlock) {
-        btnL2.classList.remove('locked');
-        btnL2.textContent = 'Launch Level 2 →';
-        boxL2.classList.add('unlocked');
-      } else {
-        btnL2.classList.add('locked');
-        btnL2.textContent = 'Locked (Finish L1)';
-        boxL2.classList.remove('unlocked');
+    function showStatusOverlay(title, desc, showRetry) {
+      const ov = document.getElementById("statusOverlay");
+      document.getElementById("overlayTitle").textContent = title;
+      document.getElementById("overlayDesc").textContent = desc;
+      document.getElementById("retryCamBtn").style.display = showRetry ? "inline-block" : "none";
+      ov.classList.remove("hidden");
+    }
+
+    function hideStatusOverlay() {
+      document.getElementById("statusOverlay").classList.add("hidden");
+    }
+
+    // === ROTATION-TOLERANT 21-LANDMARK HAND CLASSIFIER ===
+    function distSq(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return dx * dx + dy * dy;
+    }
+
+    function classifyHandLandmarks(lm) {
+      if (!lm || lm.length < 21) return "None";
+      const wrist = lm[0];
+      const pinkyMcp = lm[17];
+      const indexMcp = lm[5];
+      const palmScaleSq = Math.max(distSq(wrist, indexMcp), 0.001);
+
+      // A finger is extended if its tip is significantly farther from the wrist than its PIP joint
+      const indexExt  = distSq(lm[8], wrist)  > distSq(lm[6], wrist)  * 1.15;
+      const middleExt = distSq(lm[12], wrist) > distSq(lm[10], wrist) * 1.15;
+      const ringExt   = distSq(lm[16], wrist) > distSq(lm[14], wrist) * 1.15;
+      const pinkyExt  = distSq(lm[20], wrist) > distSq(lm[18], wrist) * 1.15;
+
+      // Thumb is extended if its tip is farther from pinky MCP than thumb IP joint AND away from index MCP
+      const thumbExt = distSq(lm[4], pinkyMcp) > distSq(lm[3], pinkyMcp) * 1.12 &&
+                       distSq(lm[4], indexMcp) > palmScaleSq * 0.35;
+
+      if (thumbExt && indexExt && middleExt && ringExt && pinkyExt) return "Open Palm";
+      if (!indexExt && !middleExt && !ringExt && !pinkyExt && !thumbExt) return "Fist";
+      if (indexExt && middleExt && !ringExt && !pinkyExt) return "Peace";
+      if (indexExt && !middleExt && !ringExt && !pinkyExt) return "Point";
+      return "Other";
+    }
+
+    function drawHandSkeleton(lm) {
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      if (!lm) return;
+      const w = overlayCanvas.width;
+      const h = overlayCanvas.height;
+      const chains = [
+        [0,1,2,3,4], [0,5,6,7,8], [5,9,13,17,0],
+        [9,10,11,12], [13,14,15,16], [17,18,19,20]
+      ];
+      overlayCtx.strokeStyle = "#38bdf8";
+      overlayCtx.lineWidth = 3;
+      chains.forEach(chain => {
+        overlayCtx.beginPath();
+        chain.forEach((idx, i) => {
+          const pt = lm[idx];
+          if (i === 0) overlayCtx.moveTo(pt.x * w, pt.y * h);
+          else overlayCtx.lineTo(pt.x * w, pt.y * h);
+        });
+        overlayCtx.stroke();
+      });
+      overlayCtx.fillStyle = "#22c55e";
+      for (let i = 0; i < lm.length; i++) {
+        overlayCtx.beginPath();
+        overlayCtx.arc(lm[i].x * w, lm[i].y * h, 4, 0, Math.PI * 2);
+        overlayCtx.fill();
+      }
+    }
+
+    // === GAME LOGIC ===
+    function pickNewTarget() {
+      const choices = GESTURES.filter(g => g.id !== currentTarget.id);
+      currentTarget = choices[Math.floor(Math.random() * choices.length)];
+      targetAssignedAt = performance.now();
+      holdStartMs = 0;
+      document.getElementById("targetIcon").textContent = currentTarget.icon;
+      document.getElementById("targetName").textContent = currentTarget.id;
+      document.getElementById("holdBar").style.width = "0%";
+    }
+
+    function updateHUD() {
+      document.getElementById("scoreVal").textContent = String(score);
+      document.getElementById("streakVal").textContent = String(streak);
+    }
+
+    function evaluateGameplay(now) {
+      if (gameState !== "playing" || isLockedByAdmin) return;
+
+      // Check 5-second timeout on current target
+      if (now - targetAssignedAt > TARGET_TIMEOUT_MS) {
+        streak = 0;
+        updateHUD();
+        pickNewTarget();
+        return;
       }
 
-      const btnL3 = document.getElementById('btnL3');
-      const boxL3 = document.getElementById('boxL3');
-      if (done2 || s2 > 0 || adminUnlock) {
-        btnL3.classList.remove('locked');
-        btnL3.textContent = 'Launch Level 3 →';
-        boxL3.classList.add('unlocked');
+      if (stableGesture === currentTarget.id) {
+        if (holdStartMs === 0) holdStartMs = now;
+        const held = now - holdStartMs;
+        const pct = Math.min(100, Math.round((held / HOLD_REQUIRED_MS) * 100));
+        document.getElementById("holdBar").style.width = pct + "%";
+
+        if (held >= HOLD_REQUIRED_MS) {
+          const reactionMs = now - targetAssignedAt;
+          const speedBonus = reactionMs < 1500 ? 5 : 0;
+          score += 10 + speedBonus;
+          streak += 1;
+          updateHUD();
+          pickNewTarget();
+        }
       } else {
-        btnL3.classList.add('locked');
-        btnL3.textContent = 'Locked (Finish L2)';
-        boxL3.classList.remove('unlocked');
+        holdStartMs = 0;
+        document.getElementById("holdBar").style.width = "0%";
       }
     }
 
-    function resetProgress() {
-      localStorage.removeItem('tl_score_gestures');
-      localStorage.removeItem('tl_score_poses');
-      localStorage.removeItem('tl_score_bonus');
-      localStorage.removeItem('tl_done_gestures');
-      localStorage.removeItem('tl_done_poses');
-      localStorage.removeItem('tl_admin_unlock_all');
-      updateLevelUI();
-      broadcastTelemetry();
-    }
+    // === CAMERA & MEDIAPIPE LOOP ===
+    async function startCameraAndTracker() {
+      if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        showStatusOverlay("HTTPS Required", "Camera access requires a secure HTTPS connection.", false);
+        return false;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showStatusOverlay("Camera Unsupported", "This browser does not support camera access.", false);
+        return false;
+      }
 
-    async function startLocalCamera() {
-      if (localStream && localStream.active) return localStream;
+      showStatusOverlay("Starting Camera…", "Please allow camera permissions when prompted.", false);
+
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(t => t.stop());
+        }
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
-        const v = document.getElementById('localVideo');
-        v.srcObject = localStream;
-        await v.play().catch(() => {});
-        broadcastTelemetry();
-        return localStream;
+        videoEl.srcObject = mediaStream;
+        await videoEl.play().catch(() => {});
       } catch (err) {
-        logChat('Camera notice: tap "Enable Cam" to allow video.', 'sys');
-        return null;
+        logGA("Camera error", err);
+        const isDenied = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+        showStatusOverlay(
+          isDenied ? "Camera Permission Denied" : "Camera Unavailable",
+          isDenied ? "Please allow camera access in your browser address bar and tap Retry." : "Could not open camera (" + err.name + ").",
+          true
+        );
+        return false;
+      }
+
+      if (!handsDetector) {
+        showStatusOverlay("Loading Hand Tracker…", "Initializing lightweight WASM model…", false);
+        try {
+          handsDetector = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+          });
+          handsDetector.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 0,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.5
+          });
+          handsDetector.onResults((results) => {
+            try {
+              if (!firstResultReceived) {
+                firstResultReceived = true;
+                if (gameState === "playing") hideStatusOverlay();
+              }
+              const lm = results.multiHandLandmarks && results.multiHandLandmarks[0];
+              drawHandSkeleton(lm);
+              const raw = lm ? classifyHandLandmarks(lm) : "None";
+              if (raw === candidateGesture) {
+                consecutiveFrames++;
+              } else {
+                candidateGesture = raw;
+                consecutiveFrames = 1;
+              }
+              if (consecutiveFrames >= 3) {
+                stableGesture = candidateGesture;
+                document.getElementById("detectedVal").textContent = stableGesture;
+              }
+              evaluateGameplay(performance.now());
+            } catch (cbErr) {
+              logGA("MediaPipe callback error", cbErr);
+            }
+          });
+        } catch (mpErr) {
+          logGA("MediaPipe init failed", mpErr);
+          showStatusOverlay("Tracker Error", "Failed to initialize hand tracker. Tap Retry.", true);
+          return false;
+        }
+      } else if (firstResultReceived && gameState === "playing") {
+        hideStatusOverlay();
+      }
+
+      startFrameLoop();
+      return true;
+    }
+
+    function startFrameLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      const step = async () => {
+        if (videoEl.readyState >= 2 && handsDetector && !isSendingFrame && gameState === "playing") {
+          isSendingFrame = true;
+          try {
+            await handsDetector.send({ image: videoEl });
+          } catch (e) {
+            logGA("hands.send error", e);
+          }
+          isSendingFrame = false;
+        }
+        rafId = requestAnimationFrame(step);
+      };
+      rafId = requestAnimationFrame(step);
+    }
+
+    async function toggleGame() {
+      const btn = document.getElementById("startBtn");
+      const nameField = document.getElementById("nameInput");
+
+      if (gameState === "playing") {
+        gameState = "idle";
+        btn.textContent = "Start Game";
+        btn.className = "";
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        showStatusOverlay("Paused", "Tap Start Game whenever you are ready to resume.", false);
+        sendTelemetry();
+        return;
+      }
+
+      let cleanName = nameField.value.trim().slice(0, 20);
+      if (!cleanName) {
+        cleanName = "Player-" + deviceId.slice(0, 4).toUpperCase();
+        nameField.value = cleanName;
+      }
+      playerName = cleanName;
+      safeSet("ga_player_name", playerName);
+
+      ensurePeerConnected();
+
+      const ok = await startCameraAndTracker();
+      if (!ok) return;
+
+      gameState = isLockedByAdmin ? "locked" : "playing";
+      btn.textContent = "Stop";
+      btn.className = "danger";
+      if (firstResultReceived) hideStatusOverlay();
+      pickNewTarget();
+      sendTelemetry();
+    }
+
+    // === PEERJS NETWORKING & RESILIENCE ===
+    function ensurePeerConnected() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+
+      if (!peer || peer.destroyed) {
+        setConnPill("Connecting…", "warn");
+        try {
+          peer = new Peer(myPeerId, PEER_OPTS);
+        } catch (e) {
+          logGA("Peer constructor failed", e);
+          scheduleReconnect();
+          return;
+        }
+
+        peer.on("open", () => {
+          logGA("Peer open: " + myPeerId);
+          backoffMs = 1000;
+          connectToAdmin();
+        });
+
+        peer.on("disconnected", () => {
+          logGA("Peer signaling disconnected");
+          setConnPill("Reconnecting…", "warn");
+          try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
+        });
+
+        peer.on("error", (err) => {
+          logGA("Peer error", err);
+          if (err && err.type === "peer-unavailable") {
+            setConnPill("Admin offline", "warn");
+          } else {
+            setConnPill("Reconnecting…", "err");
+          }
+          scheduleReconnect();
+        });
+        return;
+      }
+
+      if (peer.disconnected) {
+        setConnPill("Reconnecting…", "warn");
+        try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
+        return;
+      }
+
+      if (!adminConn || !adminConn.open) {
+        connectToAdmin();
       }
     }
 
-    function captureHubSnapshot() {
+    function connectToAdmin() {
+      if (!peer || peer.disconnected || peer.destroyed) return;
+      if (adminConn && adminConn.open) return;
+
       try {
-        const v = document.getElementById('localVideo');
-        if (!v || v.readyState < 2 || !v.videoWidth) return null;
-        const c = document.createElement('canvas');
-        c.width = 240;
-        c.height = 180;
-        const ctx = c.getContext('2d');
-        ctx.drawImage(v, 0, 0, 240, 180);
-        return c.toDataURL('image/jpeg', 0.5);
+        if (adminConn) {
+          try { adminConn.close(); } catch (e) {}
+        }
+        setConnPill("Connecting…", "warn");
+        adminConn = peer.connect(ADMIN_PEER_ID, { serialization: "json", reliable: true });
+
+        adminConn.on("open", () => {
+          logGA("Connected to Admin");
+          backoffMs = 1000;
+          setConnPill("Connected", "ok");
+          safeSend({
+            t: "hello",
+            id: deviceId,
+            name: playerName || safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase()),
+            device: deviceType,
+            meta: clientMeta
+          });
+          sendTelemetry();
+        });
+
+        adminConn.on("data", (data) => {
+          try {
+            handleAdminMessage(data);
+          } catch (e) {
+            logGA("Admin message parse error", e);
+          }
+        });
+
+        adminConn.on("close", () => {
+          logGA("Admin connection closed");
+          setConnPill("Reconnecting…", "warn");
+          scheduleReconnect();
+        });
+
+        adminConn.on("error", (err) => {
+          logGA("Admin data channel error", err);
+          scheduleReconnect();
+        });
+      } catch (e) {
+        logGA("connectToAdmin exception", e);
+        scheduleReconnect();
+      }
+    }
+
+    function scheduleReconnect() {
+      if (reconnectTimer) return;
+      const delay = backoffMs;
+      backoffMs = Math.min(10000, backoffMs * 2);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        ensurePeerConnected();
+      }, delay);
+    }
+
+    function safeSend(payload) {
+      if (!adminConn || !adminConn.open) return;
+      try {
+        adminConn.send(payload);
+      } catch (e) {
+        logGA("Send failed", e);
+      }
+    }
+
+    function captureDownsampledFrame() {
+      if (!videoEl || videoEl.readyState < 2 || !videoEl.videoWidth) return null;
+      try {
+        const vw = videoEl.videoWidth;
+        const vh = videoEl.videoHeight;
+        const targetW = Math.min(320, Math.round(vw * 0.5));
+        const targetH = Math.round((vh / vw) * targetW);
+        snapCanvas.width = targetW;
+        snapCanvas.height = targetH;
+        snapCtx.save();
+        snapCtx.translate(targetW, 0);
+        snapCtx.scale(-1, 1);
+        snapCtx.drawImage(videoEl, 0, 0, targetW, targetH);
+        snapCtx.restore();
+        return snapCanvas.toDataURL("image/jpeg", 0.5);
       } catch (e) {
         return null;
       }
     }
 
-    function initPeer() {
-      if (peer) {
-        try { peer.destroy(); } catch (e) {}
-      }
-      adminConns = {};
-      pendingAdmins = {};
-
-      const key = document.getElementById('channelKey').value.trim() || 'luna2026';
-      localStorage.setItem('tl_channel_key', key);
-      saveIdentity();
-
-      const myId = `tl-user-${key}-${userId}-hub`;
-      document.getElementById('myPeerIdDisplay').textContent = myId;
-      document.getElementById('connStatus').textContent = 'Connecting...';
-      document.getElementById('connStatus').className = 'badge';
-
-      peer = new Peer(myId, PEER_CONFIG);
-
-      peer.on('open', (id) => {
-        document.getElementById('myPeerIdDisplay').textContent = id;
-        const badge = document.getElementById('connStatus');
-        badge.textContent = 'TURN Online';
-        badge.className = 'badge online';
-        connectToAdmins(key);
+    function sendTelemetry() {
+      if (!adminConn || !adminConn.open) return;
+      const currentName = playerName || document.getElementById("nameInput").value.trim() || ("Player-" + deviceId.slice(0, 4).toUpperCase());
+      safeSend({
+        t: "tel",
+        id: deviceId,
+        name: currentName,
+        device: deviceType,
+        meta: clientMeta,
+        score: score,
+        streak: streak,
+        state: isLockedByAdmin ? "locked" : gameState,
+        target: currentTarget ? currentTarget.id : "None",
+        frame: captureDownsampledFrame(),
+        ts: Date.now()
       });
+    }
 
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          const fallbackId = `tl-user-${key}-${userId}-${Math.floor(Math.random()*90+10)}`;
-          peer = new Peer(fallbackId, PEER_CONFIG);
+    function applyLockState(locked) {
+      isLockedByAdmin = Boolean(locked);
+      const lockOv = document.getElementById("lockOverlay");
+      if (isLockedByAdmin) {
+        lockOv.classList.remove("hidden");
+      } else {
+        lockOv.classList.add("hidden");
+        if (gameState === "locked") gameState = "playing";
+      }
+      sendTelemetry();
+    }
+
+    function handleAdminMessage(msg) {
+      if (!msg || typeof msg !== "object") return;
+      if (msg.t === "state") {
+        applyLockState(msg.locked);
+      } else if (msg.t === "cmd") {
+        if (msg.cmd === "lock") {
+          applyLockState(true);
+        } else if (msg.cmd === "unlock") {
+          applyLockState(false);
+        } else if (msg.cmd === "reset") {
+          score = 0;
+          streak = 0;
+          updateHUD();
+          sendTelemetry();
         }
-      });
-
-      peer.on('connection', (conn) => {
-        setupDataConnection(conn);
-      });
-
-      peer.on('call', async (call) => {
-        const stream = await startLocalCamera();
-        call.answer(stream || undefined);
-        handleCallStream(call);
-      });
-
-      peer.on('disconnected', () => {
-        try { peer.reconnect(); } catch (e) {}
-      });
-    }
-
-    function connectToAdmins(key) {
-      if (!peer || peer.disconnected || peer.destroyed) return;
-      [1, 2].forEach(slot => {
-        const adminId = `tl-cv-monitor-${key}-s${slot}`;
-        if (adminConns[adminId] && adminConns[adminId].open) return;
-        if (pendingAdmins[adminId] && (Date.now() - pendingAdmins[adminId] < 8000)) return;
-
-        pendingAdmins[adminId] = Date.now();
-        const c = peer.connect(adminId, { reliable: true, serialization: 'json' });
-        setupDataConnection(c);
-      });
-    }
-
-    function setupDataConnection(conn) {
-      conn.on('open', () => {
-        delete pendingAdmins[conn.peer];
-        if (conn.peer.includes('-monitor-')) {
-          adminConns[conn.peer] = conn;
-          document.getElementById('adminSyncDisplay').textContent = 'Operational';
-          document.getElementById('adminSyncDisplay').style.color = '#22c55e';
-          broadcastTelemetry();
-        } else {
-          activeChatConn = conn;
-          logChat(`Connected to ${conn.peer}`, 'sys');
-        }
-      });
-
-      conn.on('data', (data) => {
-        if (!data || typeof data !== 'object') return;
-        if (data.type === 'admin-ack') {
-          broadcastTelemetry();
-        } else if (data.type === 'chat') {
-          logChat(`${data.sender || conn.peer}: ${data.text}`, 'them');
-        } else if (data.type === 'admin-cmd') {
-          handleAdminCommand(data);
-        }
-      });
-
-      conn.on('close', () => {
-        delete adminConns[conn.peer];
-        delete pendingAdmins[conn.peer];
-        if (Object.keys(adminConns).length === 0) {
-          document.getElementById('adminSyncDisplay').textContent = 'Searching...';
-          document.getElementById('adminSyncDisplay').style.color = '#f59e0b';
-        }
-      });
-
-      conn.on('error', () => {
-        delete pendingAdmins[conn.peer];
-      });
-    }
-
-    function handleAdminCommand(cmd) {
-      if (cmd.action === 'unlock-all') {
-        localStorage.setItem('tl_admin_unlock_all', 'true');
-        updateLevelUI();
-        logChat('Admin unlocked all contest levels!', 'sys');
-      } else if (cmd.action === 'lock-reset') {
-        resetProgress();
-        logChat('Admin reset contest scores & locks.', 'sys');
-      } else if (cmd.action === 'redirect' && cmd.target) {
-        cleanupMedia();
-        window.location.href = cmd.target;
+      } else if (msg.t === "msg" && typeof msg.text === "string") {
+        // Admin messaged the player: unlock the reply drawer!
+        adminMessagedFirst = true;
+        const drawer = document.getElementById("chatDrawer");
+        drawer.classList.add("unlocked");
+        appendChatBubble("Admin: " + msg.text, "admin");
       }
     }
 
-    function broadcastTelemetry() {
-      const payload = {
-        type: 'telemetry',
-        userId: userId,
-        username: localStorage.getItem('tl_username') || `Player-${userId}`,
-        device: detectDeviceLabel(),
-        page: 'index',
-        peerId: peer ? peer.id : 'offline',
-        liveScore: 0,
-        scores: {
-          gestures: parseInt(localStorage.getItem('tl_score_gestures') || '0', 10),
-          poses: parseInt(localStorage.getItem('tl_score_poses') || '0', 10),
-          bonus: parseInt(localStorage.getItem('tl_score_bonus') || '0', 10)
-        },
-        snapshot: captureHubSnapshot(),
-        unlockedAll: localStorage.getItem('tl_admin_unlock_all') === 'true',
-        timestamp: Date.now()
-      };
-      Object.values(adminConns).forEach(c => {
-        if (c && c.open) {
-          try { c.send(payload); } catch (e) {}
-        }
-      });
-    }
-
-    async function callPeer() {
-      let target = document.getElementById('remotePeerInput').value.trim();
-      if (!target) return;
-      const c = peer.connect(target, { reliable: true, serialization: 'json' });
-      setupDataConnection(c);
-
-      const stream = await startLocalCamera();
-      if (stream) {
-        const call = peer.call(target, stream);
-        handleCallStream(call);
-      }
-    }
-
-    function handleCallStream(call) {
-      if (activeCall) {
-        try { activeCall.close(); } catch (e) {}
-      }
-      activeCall = call;
-      document.getElementById('remoteLabel').textContent = call.peer;
-      call.on('stream', (remoteStream) => {
-        const rv = document.getElementById('remoteVideo');
-        rv.srcObject = remoteStream;
-        rv.play().catch(() => {});
-      });
-      call.on('close', () => {
-        document.getElementById('remoteVideo').srcObject = null;
-        document.getElementById('remoteLabel').textContent = 'Remote Peer';
-      });
-    }
-
-    function endCall() {
-      if (activeCall) {
-        activeCall.close();
-        activeCall = null;
-      }
-      document.getElementById('remoteVideo').srcObject = null;
-      logChat('Call ended.', 'sys');
-    }
-
-    function sendChat() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-      logChat(`Me: ${text}`, 'me');
-      if (activeChatConn && activeChatConn.open) {
-        activeChatConn.send({ type: 'chat', sender: localStorage.getItem('tl_username') || peer.id, text });
-      }
-      input.value = '';
-    }
-
-    function logChat(text, cls) {
-      const box = document.getElementById('chatBox');
-      const div = document.createElement('div');
-      div.className = `msg ${cls === 'me' ? 'me' : cls === 'sys' ? 'sys' : ''}`;
+    function appendChatBubble(text, role) {
+      const log = document.getElementById("chatLog");
+      const div = document.createElement("div");
+      div.className = "chat-bubble " + role;
       div.textContent = text;
-      box.appendChild(div);
-      box.scrollTop = box.scrollHeight;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
     }
 
-    function reconnectMesh() {
-      initPeer();
+    function sendReply() {
+      if (!adminMessagedFirst) return; // Cannot message admin unless admin messaged first
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim().slice(0, 200);
+      if (!text) return;
+      appendChatBubble("You: " + text, "me");
+      safeSend({
+        t: "msg",
+        id: deviceId,
+        name: playerName || document.getElementById("nameInput").value.trim() || ("Player-" + deviceId.slice(0, 4).toUpperCase()),
+        text: text,
+        ts: Date.now()
+      });
+      input.value = "";
     }
 
-    function cleanupMedia() {
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-      }
-      if (peer) {
-        try { peer.destroy(); } catch (e) {}
-      }
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        startLocalCamera();
-        if (!peer || peer.destroyed || peer.disconnected) {
-          initPeer();
+    // === LIFECYCLE & BACKGROUND RECOVERY ===
+    function handleWakeUp() {
+      if (document.visibilityState === "hidden") return;
+      ensurePeerConnected();
+      if (gameState === "playing") {
+        const trackEnded = !mediaStream || mediaStream.getVideoTracks().every(t => t.readyState === "ended");
+        if (trackEnded) {
+          startCameraAndTracker();
         } else {
-          const key = document.getElementById('channelKey').value.trim() || 'luna2026';
-          connectToAdmins(key);
-          broadcastTelemetry();
+          videoEl.play().catch(() => {});
         }
       }
-    });
+    }
 
-    window.addEventListener('pagehide', cleanupMedia);
-    window.addEventListener('beforeunload', cleanupMedia);
+    document.addEventListener("visibilitychange", handleWakeUp);
+    window.addEventListener("focus", handleWakeUp);
+    window.addEventListener("pageshow", handleWakeUp);
+    window.addEventListener("online", handleWakeUp);
 
-    updateLevelUI();
-    startLocalCamera();
-    initPeer();
+    // Connect to admin immediately on load so user shows up even while idle, and stream every 1000ms
+    ensurePeerConnected();
     setInterval(() => {
-      const key = document.getElementById('channelKey').value.trim() || 'luna2026';
-      connectToAdmins(key);
-      broadcastTelemetry();
-    }, 3000);
+      sendTelemetry();
+      updateDebugLine();
+    }, 1000);
   </script>
 </body>
 </html>
