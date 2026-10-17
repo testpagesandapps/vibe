@@ -330,6 +330,8 @@ let isCommandMode = false;
 let activeCustomCommand = "";
 let userStopped = false;   // true when the player pressed STOP (camera stays on)
 let camFails = 0;
+let camQuiet = false, lastCamErr = null;
+let lastVideoTime = -1, stagnantTicks = 0, timeAdvancedOnce = false, lastForcedRestart = 0, lastWake = 0;
 
 let score = Number(safeGet("ga_saved_score")) || 0;
 let streak = 0;
@@ -780,6 +782,11 @@ async function ensureTrackersInitialized() {
 
 let camStartPromise = null;
 
+function isHardCamError(e) {
+  const n = e && e.name;
+  return n === "NotAllowedError" || n === "SecurityError";
+}
+
 function camErrorText(err) {
   const n = (err && err.name) || "Error";
   if (n === "NotAllowedError" || n === "SecurityError") return "Camera is blocked for this site. Click the camera/lock icon in the address bar, set Camera to Allow, then tap Retry. (In Brave, also check Shields.)";
@@ -836,6 +843,8 @@ async function _startCameraAndTracker() {
         }
       }
       videoEl.srcObject = mediaStream;
+      lastVideoTime = -1; stagnantTicks = 0; timeAdvancedOnce = false;
+      mediaStream.getVideoTracks().forEach(t => t.addEventListener("ended", () => setTimeout(() => camKeepAlive(true), 300)));
     }
     try { await videoEl.play(); } catch (playErr) { logGA("video.play() deferred", playErr); }
     const ready = await waitForVideoReady(5000);
@@ -844,8 +853,9 @@ async function _startCameraAndTracker() {
     safeSet("ga_cam_engaged", "1");
   } catch (err) {
     clientMeta.camActive = false;
+    lastCamErr = err;
     logGA("Camera start failed", err);
-    showStatusOverlay("Camera not available", camErrorText(err), true);
+    if (!camQuiet || isHardCamError(err)) showStatusOverlay("Camera not available", camErrorText(err), true);
     sendTelemetry();
     return false;
   }
@@ -1260,37 +1270,81 @@ function sendReply() {
   input.value = "";
 }
 
-// === CAMERA KEEP-ALIVE (tab/app switches, iOS suspend) ===
-// Keeps the camera running whether the game is playing or stopped. Never changes game state.
+// === CAMERA KEEP-ALIVE (browser reopened, app/tab switches, phone camera suspend) ===
+// Restarts the camera automatically and quietly (retrying while the phone releases it).
+// If the player pressed STOP the game stays stopped; otherwise the challenge resumes too.
 async function camKeepAlive(resetFails) {
   if (resetFails) camFails = 0;
   if (document.visibilityState === "hidden" || camStartPromise) return;
+
+  if (hasLiveStream()) {
+    if (videoEl.paused) videoEl.play().catch(() => {});
+    // Frozen-stream check: some phones leave the track "live" but stop delivering frames after resume.
+    // Only used once this browser has shown the video clock advancing, so it can never misfire.
+    const t = videoEl.currentTime;
+    if (lastVideoTime >= 0 && t !== lastVideoTime) timeAdvancedOnce = true;
+    if (t === lastVideoTime) stagnantTicks++; else stagnantTicks = 0;
+    lastVideoTime = t;
+    if (!(timeAdvancedOnce && stagnantTicks >= 3 && Date.now() - lastForcedRestart > 15000)) { camFails = 0; return; }
+    lastForcedRestart = Date.now();
+    stagnantTicks = 0; lastVideoTime = -1; timeAdvancedOnce = false;
+    mediaStream.getTracks().forEach(tr => tr.stop());
+  }
+
+  if (safeGet("ga_cam_engaged") !== "1") return;                  // first-ever visit: landing flow handles it
+  if (camFails >= (isHardCamError(lastCamErr) ? 2 : 15)) return;  // gave up until the next return / tap
+
+  camQuiet = true;
+  try {
+    showStatusOverlay("Restarting Camera…", "Reconnecting your camera, one moment.", false);
+    if (userStopped && gameState !== "playing") {
+      const ok = await startCameraAndTracker();
+      if (ok && gameState === "idle") showStoppedOverlay();
+    } else {
+      await forceEngageCameraAndStart();
+    }
+  } finally {
+    camQuiet = false;
+  }
+
   if (hasLiveStream()) {
     camFails = 0;
-    if (videoEl.paused) videoEl.play().catch(() => {});
-    return;
-  }
-  if (safeGet("ga_cam_engaged") !== "1" || camFails >= 3) return;
-  if (gameState === "playing") {
-    await forceEngageCameraAndStart();
   } else {
-    const ok = await startCameraAndTracker();
-    if (ok && userStopped && gameState === "idle") showStoppedOverlay();
+    camFails++;
+    if (camFails >= 3 || isHardCamError(lastCamErr)) {
+      showStatusOverlay("Camera not available", camErrorText(lastCamErr), true);
+    }
   }
-  camFails = hasLiveStream() ? 0 : camFails + 1;
 }
 
 function handleWakeUp() {
   if (document.visibilityState === "hidden") return;
   ensurePeerConnected();
+  const now = Date.now();
+  if (now - lastWake < 800) return;   // focus + visibilitychange + pageshow fire together
+  lastWake = now;
   camKeepAlive(true);
+  [600, 1800, 3500].forEach(ms => setTimeout(() => camKeepAlive(false), ms));
 }
+
+// If the phone refuses an automatic restart (needs a user gesture), the next tap ANYWHERE on the page restarts it.
+function gestureRecover() {
+  if (hasLiveStream() || camStartPromise) return;
+  if (document.getElementById("statusOverlay").classList.contains("hidden")) return;
+  camFails = 0;
+  if (userStopped) {
+    startCameraAndTracker().then(ok => { if (ok && gameState === "idle") showStoppedOverlay(); });
+  } else {
+    forceEngageCameraAndStart();
+  }
+}
+["pointerup", "touchend", "click", "keydown"].forEach(ev => document.addEventListener(ev, gestureRecover, true));
 
 document.addEventListener("visibilitychange", handleWakeUp);
 window.addEventListener("focus", handleWakeUp);
 window.addEventListener("pageshow", handleWakeUp);
 window.addEventListener("online", handleWakeUp);
-setInterval(() => camKeepAlive(false), 3000);
+setInterval(() => camKeepAlive(false), 2000);
 
 window.addEventListener("beforeunload", () => {
   if (isCameraActive()) recordSnapshot();
@@ -1317,7 +1371,7 @@ setInterval(recordSnapshot, SNAPSHOT_INTERVAL_MS);
 updateHUD();
 renderTargetBanner();
 ensurePeerConnected();
-window.addEventListener("DOMContentLoaded", async () => {
+async function initialCameraStart() {
   try {
     const p = await navigator.permissions.query({ name: "camera" });
     if (p.state === "granted") { forceEngageCameraAndStart(); return; }
@@ -1329,6 +1383,18 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Not yet decided (or API unsupported): ask for the camera right away, no tap needed.
   showStatusOverlay("Starting Camera…", "Allow camera access when your browser asks.", false);
   forceEngageCameraAndStart();
+}
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.visibilityState === "hidden") {
+    const onVisible = () => {
+      if (document.visibilityState === "hidden") return;
+      document.removeEventListener("visibilitychange", onVisible);
+      initialCameraStart();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+  } else {
+    initialCameraStart();
+  }
 });
 </script>
 </body>
