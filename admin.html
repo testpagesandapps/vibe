@@ -212,19 +212,39 @@
     details.debug { font-size: 0.74rem; color: var(--muted); margin-top: auto; }
     details.debug summary { cursor: pointer; user-select: none; }
     .debug-content { background: #070a10; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 4px; font-family: monospace; word-break: break-all; }
+  
+    .auth-overlay { position: fixed; inset: 0; background: rgba(7,10,18,0.97); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-overlay.hidden { display: none; }
+    .auth-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; text-align: center; }
+    .auth-card h2 { font-size: 1.3rem; color: var(--accent); font-weight: 800; }
+    .auth-card p { font-size: 0.84rem; color: var(--muted); }
+    .auth-card input { background: var(--panel-dark); border: 1px solid var(--border); color: var(--text); padding: 12px 14px; border-radius: 8px; font-size: 1rem; text-align: center; outline: none; }
+    .auth-card input:focus { border-color: var(--accent); }
+    .auth-err { color: var(--danger); font-size: 0.8rem; font-weight: 700; visibility: hidden; }
+    .auth-err.show { visibility: visible; }
   </style>
 </head>
 <body>
 
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <h2>🔒 Admin Access</h2>
+      <p>Enter the admin password to open the live monitor.</p>
+      <input type="password" id="authInput" placeholder="Password" autocomplete="off" />
+      <div class="auth-err" id="authErr">Incorrect password</div>
+      <button onclick="submitAdminPassword()">Unlock</button>
+    </div>
+  </div>
+
   <div class="banner-error" id="dupAdminBanner">
-    ⚠️ Another admin tab is already open on this channel. Close the other admin tab or wait for automatic retry.
+    ⚠️ Another admin tab is already open on this channel (check other browser tabs and other domains). Close it or wait for automatic retry.
   </div>
 
   <header>
     <div class="brand-wrap">
       <div class="brand">🎛️ Gesture Arena — Live Monitor</div>
       <span id="adminStatusPill" class="pill">Connecting…</span>
-      <span class="pill">Channel: <strong id="channelLabel" style="color:var(--text);">luna2026</strong></span>
+      <span class="pill">Channel: <strong id="channelLabel" style="color:var(--text);">lacy-vibe-9x4q</strong></span>
     </div>
 
     <div class="top-controls">
@@ -252,7 +272,7 @@
 
   <script>
     // === SHARED CONFIG (Identical across index.html and admin.html) ===
-    const CHANNEL = "luna2026";                 // channel key
+    const CHANNEL = "lacy-vibe-9x4q";                 // channel key
     const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
     const ICE_SERVERS = [
       { urls: "stun:stun.l.google.com:19302" },
@@ -791,7 +811,10 @@
     }
 
     // === LIFECYCLE & WAKE RECOVERY ===
+    let adminUnlocked = false;
+
     function handleAdminWake() {
+      if (!adminUnlocked) return;
       if (document.visibilityState === "hidden") return;
       ensureAdminPeer();
     }
@@ -801,8 +824,45 @@
     window.addEventListener("pageshow", handleAdminWake);
     window.addEventListener("online", handleAdminWake);
 
-    ensureAdminPeer();
-    setInterval(refreshSummaryCounts, 1000);
+    // === PASSWORD GATE (client-side; SHA-256 of the password) ===
+    const ADMIN_PW_HASH = "4ea140588150773ce3aace786aeef7f4049ce100fa649c94fbbddb960f1da942";
+
+    async function sha256Hex(text) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function unlockAdmin() {
+      if (adminUnlocked) return;
+      adminUnlocked = true;
+      document.getElementById("authOverlay").classList.add("hidden");
+      ensureAdminPeer();
+      setInterval(refreshSummaryCounts, 1000);
+    }
+
+    async function submitAdminPassword() {
+      const input = document.getElementById("authInput");
+      const err = document.getElementById("authErr");
+      let ok = false;
+      try { ok = (await sha256Hex(input.value.trim())) === ADMIN_PW_HASH; } catch (e) { ok = false; }
+      if (ok) {
+        try { sessionStorage.setItem("ga_admin_ok", "1"); } catch (e) {}
+        err.classList.remove("show");
+        unlockAdmin();
+      } else {
+        err.classList.add("show");
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    document.getElementById("authInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAdminPassword();
+    });
+
+    let alreadyOk = false;
+    try { alreadyOk = sessionStorage.getItem("ga_admin_ok") === "1"; } catch (e) {}
+    if (alreadyOk) unlockAdmin(); else document.getElementById("authInput").focus();
   </script>
 </body>
 </html>
