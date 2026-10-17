@@ -1534,5 +1534,32 @@
 <script>
   document.getElementById("nameInput").placeholder = "Nickname (optional)";
 </script>
+  <!-- ===== AUTO CAMERA + FAST RESUME PATCH =====
+     Paste LAST in index.html, right before </body> (after the compact-layout patch).
+     Wraps showStatusOverlay only; all game, camera and network code is untouched. -->
+<script>
+  (function autoCameraPatch() {
+    const origShow = window.showStatusOverlay;
+    if (typeof origShow !== "function") return;
+
+    window.showStatusOverlay = function (title, desc, showRetry) {
+      // First visit with no saved permission: ask for the webcam immediately instead of waiting for a tap.
+      // (Granted -> original code already auto-starts; Denied -> original code shows the blocked message.)
+      if (title === "Tap to Start Camera") {
+        origShow("Starting Camera…", "Allow camera access when your browser asks.", false);
+        window.forceEngageCameraAndStart();
+        return;
+      }
+
+      origShow(title, desc, showRetry);
+
+      // Paused: camera stream stays live, so Resume is instant. Label the button accordingly.
+      const btn = document.getElementById("retryCamBtn");
+      if (btn) {
+        btn.textContent = (title === "Challenge Paused") ? "▶️ Resume" : "🎥 Enable Camera & Start";
+      }
+    };
+  })();
+</script>
 </body>
 </html>
