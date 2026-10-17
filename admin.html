@@ -1,868 +1,712 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gesture Arena — Admin Live Monitor</title>
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <style>
-    :root {
-      --bg: #0b0f19;
-      --panel: #151c2c;
-      --panel-dark: #090d16;
-      --border: #263147;
-      --accent: #38bdf8;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding: 16px; gap: 16px; }
-
-    .banner-error {
-      display: none;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid var(--danger);
-      color: #fca5a5;
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.92rem;
-      text-align: center;
-    }
-
-    header {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .brand-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .brand { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
-    .pill { font-size: 0.76rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-dark); color: var(--muted); }
-    .pill.ok { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); }
-    .pill.warn { color: var(--warning); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
-    .pill.err { color: var(--danger); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); }
-
-    .top-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .counts { font-size: 0.88rem; color: var(--muted); margin-right: 8px; }
-    .counts strong { color: var(--text); font-size: 1rem; }
-
-    button {
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.82rem;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-    button:hover { opacity: 0.9; }
-    button.secondary { background: var(--panel-dark); color: var(--text); border: 1px solid var(--border); }
-    button.warning { background: var(--warning); color: #000; }
-    button.danger { background: var(--danger); color: #fff; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 16px;
-      flex: 1;
-      align-content: start;
-    }
-    .empty-state {
-      grid-column: 1 / -1;
-      background: var(--panel);
-      border: 1px dashed var(--border);
-      border-radius: 12px;
-      padding: 48px 20px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .player-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .name-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--danger); }
-    .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
-    .status-dot.stale { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
-    . status-dot.offline { background: var(--danger); }
-    .player-name { font-weight: 800; font-size: 1rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .dev-badge { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; }
-    .dev-iPhone  { background: rgba(56,189,248,0.16); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); }
-    .dev-Android { background: rgba(34,197,94,0.16);  color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
-    .dev-Windows { background: rgba(168,85,247,0.16); color: #c084fc; border: 1px solid rgba(168,85,247,0.35); }
-    .dev-Mac     { background: rgba(245,158,11,0.16); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
-    .dev-Other   { background: rgba(148,163,184,0.16); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.35); }
-
-    .cam-box {
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #05070c;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cam-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
-    .cam-placeholder { font-size: 0.8rem; color: var(--muted); text-align: center; padding: 10px; }
-    .cam-hud {
-      position: absolute;
-      bottom: 6px;
-      left: 6px;
-      right: 6px;
-      background: rgba(11, 15, 25, 0.84);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.74rem;
-      color: var(--text);
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      background: var(--panel-dark);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-    }
-    .m-val { font-size: 1.05rem; font-weight: 800; color: var(--text); }
-    .m-lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
-
-    .sys-info {
-      background: var(--panel-dark);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 0.74rem;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      line-height: 1.35;
-    }
-    .sys-row { display: flex; justify-content: space-between; gap: 6px; }
-    .sys-row span.val { color: var(--text); font-weight: 600; text-align: right; word-break: break-all; }
-
-    .card-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .card-btns button { padding: 6px 8px; font-size: 0.75rem; }
-
-    .dm-box {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      border-top: 1px solid var(--border);
-      padding-top: 8px;
-    }
-    .dm-log {
-      max-height: 95px;
-      min-height: 36px;
-      overflow-y: auto;
-      background: var(--panel-dark);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.76rem;
-    }
-    .dm-msg { padding: 4px 7px; border-radius: 5px; word-break: break-word; }
-    .dm-msg.from-admin { background: rgba(56,189,248,0.15); color: #bae6fd; align-self: flex-end; }
-    .dm-msg.from-player { background: rgba(34,197,94,0.18); color: #bbf7d0; align-self: flex-start; }
-    .dm-input-row { display: flex; gap: 6px; }
-    .dm-input-row input {
-      flex: 1;
-      min-width: 0;
-      background: var(--panel-dark);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      outline: none;
-    }
-    .dm-input-row input:focus { border-color: var(--accent); }
-
-    details.debug { font-size: 0.74rem; color: var(--muted); margin-top: auto; }
-    details.debug summary { cursor: pointer; user-select: none; }
-    .debug-content { background: #070a10; border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 4px; font-family: monospace; word-break: break-all; }
-  
-    .auth-overlay { position: fixed; inset: 0; background: rgba(7,10,18,0.97); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .auth-overlay.hidden { display: none; }
-    .auth-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; text-align: center; }
-    .auth-card h2 { font-size: 1.3rem; color: var(--accent); font-weight: 800; }
-    .auth-card p { font-size: 0.84rem; color: var(--muted); }
-    .auth-card input { background: var(--panel-dark); border: 1px solid var(--border); color: var(--text); padding: 12px 14px; border-radius: 8px; font-size: 1rem; text-align: center; outline: none; }
-    .auth-card input:focus { border-color: var(--accent); }
-    .auth-err { color: var(--danger); font-size: 0.8rem; font-weight: 700; visibility: hidden; }
-    .auth-err.show { visibility: visible; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gesture Arena — Admin Live Monitor</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+:root{--bg:#0b0f19;--panel:#151c2c;--panel-dark:#090d16;--border:#263147;--accent:#38bdf8;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--text:#f8fafc;--muted:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;padding:16px;gap:16px}
+.banner-error{display:none;background:rgba(239,68,68,.15);border:1px solid var(--danger);color:#fca5a5;padding:12px 16px;border-radius:10px;font-weight:700;font-size:.92rem;text-align:center}
+header{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.brand-wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-size:1.25rem;font-weight:800;color:var(--accent)}
+.pill{font-size:.76rem;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel-dark);color:var(--muted)}
+.pill.ok{color:var(--success);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.1)}
+.pill.warn{color:var(--warning);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.1)}
+.pill.err{color:var(--danger);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}
+.top-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.counts{font-size:.88rem;color:var(--muted);margin-right:8px}
+.counts strong{color:var(--text);font-size:1rem}
+button{background:var(--accent);color:#000;border:none;padding:8px 12px;border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;transition:opacity .15s}
+button:hover{opacity:.9}
+button.secondary{background:var(--panel-dark);color:var(--text);border:1px solid var(--border)}
+button.warning{background:var(--warning);color:#000}
+button.danger{background:var(--danger);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;flex:1;align-content:start}
+.empty-state{grid-column:1/-1;background:var(--panel);border:1px dashed var(--border);border-radius:12px;padding:48px 20px;text-align:center;color:var(--muted)}
+.player-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.name-group{display:flex;align-items:center;gap:8px;min-width:0}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--danger)}
+.status-dot.online{background:var(--success);box-shadow:0 0 8px var(--success)}
+.status-dot.stale{background:var(--warning);box-shadow:0 0 8px var(--warning)}
+.status-dot.offline{background:var(--danger)}
+.player-name{font-weight:800;font-size:1rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-badge{font-size:.7rem;font-weight:800;padding:3px 8px;border-radius:999px;flex-shrink:0}
+.dev-iPhone{background:rgba(56,189,248,.16);color:#38bdf8;border:1px solid rgba(56,189,248,.35)}
+.dev-Android{background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+.dev-Windows{background:rgba(168,85,247,.16);color:#c084fc;border:1px solid rgba(168,85,247,.35)}
+.dev-Mac{background:rgba(245,158,11,.16);color:#fbbf24;border:1px solid rgba(245,158,11,.35)}
+.dev-Other{background:rgba(148,163,184,.16);color:#cbd5e1;border:1px solid rgba(148,163,184,.35)}
+.cam-box{width:100%;aspect-ratio:4/3;background:#05070c;border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.cam-box img{width:100%;height:100%;object-fit:cover;display:none}
+.cam-placeholder{font-size:.8rem;color:var(--muted);text-align:center;padding:10px}
+.cam-hud{position:absolute;bottom:6px;left:6px;right:6px;background:rgba(11,15,25,.84);border:1px solid var(--border);border-radius:6px;padding:4px 8px;display:flex;justify-content:space-between;font-size:.74rem;color:var(--text)}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--panel-dark);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.m-val{font-size:1.05rem;font-weight:800;color:var(--text)}
+.m-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase}
+.sys-info{background:var(--panel-dark);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.74rem;color:var(--muted);display:flex;flex-direction:column;gap:3px;line-height:1.35}
+.sys-row{display:flex;justify-content:space-between;gap:6px}
+.sys-row span.val{color:var(--text);font-weight:600;text-align:right;word-break:break-all}
+.card-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.card-btns button{padding:6px 8px;font-size:.75rem}
+.dm-box{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:8px}
+.dm-log{max-height:95px;min-height:36px;overflow-y:auto;background:var(--panel-dark);border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:.76rem}
+.dm-msg{padding:4px 7px;border-radius:5px;word-break:break-word}
+.dm-msg.from-admin{background:rgba(56,189,248,.15);color:#bae6fd;align-self:flex-end}
+.dm-msg.from-player{background:rgba(34,197,94,.18);color:#bbf7d0;align-self:flex-start}
+.dm-input-row{display:flex;gap:6px}
+.dm-input-row input{flex:1;min-width:0;background:var(--panel-dark);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.78rem;outline:none}
+.dm-input-row input:focus{border-color:var(--accent)}
+details.debug{font-size:.74rem;color:var(--muted);margin-top:auto}
+details.debug summary{cursor:pointer;user-select:none}
+.debug-content{background:#070a10;border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:4px;font-family:monospace;word-break:break-all}
+.auth-overlay{position:fixed;inset:0;background:rgba(7,10,18,.97);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-overlay.hidden{display:none}
+.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.auth-card h2{font-size:1.3rem;color:var(--accent);font-weight:800}
+.auth-card p{font-size:.84rem;color:var(--muted)}
+.auth-card input{background:var(--panel-dark);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-size:1rem;text-align:center;outline:none}
+.auth-card input:focus{border-color:var(--accent)}
+.auth-err{color:var(--danger);font-size:.8rem;font-weight:700;visibility:hidden}
+.auth-err.show{visibility:visible}
+</style>
 </head>
 <body>
 
-  <div class="auth-overlay" id="authOverlay">
-    <div class="auth-card">
-      <h2>🔒 Admin Access</h2>
-      <p>Enter the admin password to open the live monitor.</p>
-      <input type="password" id="authInput" placeholder="Password" autocomplete="off" />
-      <div class="auth-err" id="authErr">Incorrect password</div>
-      <button onclick="submitAdminPassword()">Unlock</button>
-    </div>
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <h2>🔒 Admin Access</h2>
+    <p>Enter the admin password to open the live monitor.</p>
+    <input type="password" id="authInput" placeholder="Password" autocomplete="off" />
+    <div class="auth-err" id="authErr">Incorrect password</div>
+    <button onclick="submitAdminPassword()">Unlock</button>
   </div>
+</div>
 
-  <div class="banner-error" id="dupAdminBanner">
-    ⚠️ Another admin tab is already open on this channel (check other browser tabs and other domains). Close it or wait for automatic retry.
+<div class="banner-error" id="dupAdminBanner">
+  ⚠️ Another admin tab is already open on this channel (check other browser tabs and other domains). Close it or wait for automatic retry.
+</div>
+
+<header>
+  <div class="brand-wrap">
+    <div class="brand">🎛️ Gesture Arena — Live Monitor</div>
+    <span id="adminStatusPill" class="pill">Connecting…</span>
+    <span class="pill">Channel: <strong id="channelLabel" style="color:var(--text);">lacy-vibe-9x4q</strong></span>
   </div>
-
-  <header>
-    <div class="brand-wrap">
-      <div class="brand">🎛️ Gesture Arena — Live Monitor</div>
-      <span id="adminStatusPill" class="pill">Connecting…</span>
-      <span class="pill">Channel: <strong id="channelLabel" style="color:var(--text);">lacy-vibe-9x4q</strong></span>
-    </div>
-
-    <div class="top-controls">
-      <div class="counts">
-        Online: <strong id="onlineCount">0</strong> / Total: <strong id="totalCount">0</strong>
-      </div>
-      <button class="secondary" onclick="broadcastCmd('reset')">Reset All Scores</button>
-      <button class="warning" onclick="setGlobalLock(true)">🔒 Lock All</button>
-      <button onclick="setGlobalLock(false)">🔓 Unlock All</button>
-      <button class="danger" onclick="clearOfflineCards()">Clear Offline Cards</button>
-    </div>
-  </header>
-
-  <div class="grid" id="playersGrid">
-    <div class="empty-state" id="emptyState">
-      <h3>No Active Players Yet</h3>
-      <p style="margin-top:6px;font-size:0.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live 1fps camera feeds, IP/browser telemetry, and direct messaging.</p>
-    </div>
+  <div class="top-controls">
+    <div class="counts">Online: <strong id="onlineCount">0</strong> / Total: <strong id="totalCount">0</strong></div>
+    <button class="secondary" onclick="broadcastCmd('reset')">Reset All Scores</button>
+    <button class="warning" onclick="setGlobalLock(true)">🔒 Lock All</button>
+    <button onclick="setGlobalLock(false)">🔓 Unlock All</button>
+    <button class="danger" onclick="clearOfflineCards()">Clear Offline Cards</button>
   </div>
+</header>
 
-  <details class="debug">
-    <summary>[GA] Admin Monitor Debug</summary>
-    <div class="debug-content" id="debugLine">Peer: Not started | State: init | Last error: none</div>
-  </details>
+<div class="grid" id="playersGrid">
+  <div class="empty-state" id="emptyState">
+    <h3>No Active Players Yet</h3>
+    <p style="margin-top:6px;font-size:.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live 1fps camera feeds, IP/browser telemetry, and direct messaging.</p>
+  </div>
+</div>
 
-  <script>
-    // === SHARED CONFIG (Identical across index.html and admin.html) ===
-    const CHANNEL = "lacy-vibe-9x4q";                 // channel key
-    const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
-    const ICE_SERVERS = [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.relay.metered.ca:80" },
-      { urls: ["turn:global.relay.metered.ca:80",
-               "turn:global.relay.metered.ca:80?transport=tcp",
-               "turn:global.relay.metered.ca:443",
-               "turns:global.relay.metered.ca:443?transport=tcp"],
-        username: "157815d4b2b7c36cb6dde13e",
-        credential: "upgZIOhHpGSSPEgs" }
-    ];
-    const PEER_OPTS = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 }, debug: 1 };
+<details class="debug">
+  <summary>[GA] Admin Monitor Debug</summary>
+  <div class="debug-content" id="debugLine">Peer: Not started | State: init | Last error: none</div>
+</details>
 
-    document.getElementById("channelLabel").textContent = CHANNEL;
+<script>
+// === SHARED CONFIG (Identical across index.html and admin.html) ===
+const CHANNEL = "lacy-vibe-9x4q";
+const ADMIN_PEER_ID = `ga-${CHANNEL}-admin`;
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun.relay.metered.ca:80" },
+  { urls: ["turn:global.relay.metered.ca:80",
+           "turn:global.relay.metered.ca:80?transport=tcp",
+           "turn:global.relay.metered.ca:443",
+           "turns:global.relay.metered.ca:443?transport=tcp"],
+    username: "157815d4b2b7c36cb6dde13e",
+    credential: "upgZIOhHpGSSPEgs" }
+];
+const PEER_OPTS = { config: { iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 }, debug: 1 };
 
-    // Map of playerId -> player record
-    const players = new Map();
-    let adminPeer = null;
-    let reconnectTimer = null;
-    let backoffMs = 1000;
-    let globalLocked = false;
-    let lastErrorStr = "none";
+document.getElementById("channelLabel").textContent = CHANNEL;
 
-    function logGA(msg, err) {
-      if (err) {
-        lastErrorStr = String(err.type || err.message || err);
-        console.warn("[GA]", msg, err);
-      } else {
-        console.log("[GA]", msg);
-      }
+// Map of playerId -> player record
+const players = new Map();
+let adminPeer = null;
+let reconnectTimer = null;
+let backoffMs = 1000;
+let globalLocked = false;
+let lastErrorStr = "none";
+
+function logGA(msg, err) {
+  if (err) {
+    lastErrorStr = String(err.type || err.message || err);
+    console.warn("[GA]", msg, err);
+  } else {
+    console.log("[GA]", msg);
+  }
+  updateDebugLine();
+}
+
+function updateDebugLine() {
+  const pState = adminPeer ? (adminPeer.destroyed ? "destroyed" : adminPeer.disconnected ? "disconnected" : "open") : "none";
+  document.getElementById("debugLine").textContent =
+    `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Last error: ${lastErrorStr}`;
+}
+
+function setAdminPill(text, level) {
+  const pill = document.getElementById("adminStatusPill");
+  pill.textContent = text;
+  pill.className = "pill " + (level || "");
+}
+
+// === PEERJS HOST INITIALIZATION & RESILIENCE ===
+function ensureAdminPeer() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  if (!adminPeer || adminPeer.destroyed) {
+    setAdminPill("Connecting…", "warn");
+    try {
+      adminPeer = new Peer(ADMIN_PEER_ID, PEER_OPTS);
+    } catch (e) {
+      logGA("Admin Peer constructor error", e);
+      scheduleReconnect();
+      return;
+    }
+
+    adminPeer.on("open", (id) => {
+      logGA("Admin Monitor online: " + id);
+      backoffMs = 1000;
+      document.getElementById("dupAdminBanner").style.display = "none";
+      setAdminPill("Monitor Online", "ok");
       updateDebugLine();
-    }
-
-    function updateDebugLine() {
-      const pState = adminPeer ? (adminPeer.destroyed ? "destroyed" : adminPeer.disconnected ? "disconnected" : "open") : "none";
-      document.getElementById("debugLine").textContent =
-        `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Last error: ${lastErrorStr}`;
-    }
-
-    function setAdminPill(text, level) {
-      const pill = document.getElementById("adminStatusPill");
-      pill.textContent = text;
-      pill.className = "pill " + (level || "");
-    }
-
-    // === PEERJS HOST INITIALIZATION & RESILIENCE ===
-    function ensureAdminPeer() {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-
-      if (!adminPeer || adminPeer.destroyed) {
-        setAdminPill("Connecting…", "warn");
-        try {
-          adminPeer = new Peer(ADMIN_PEER_ID, PEER_OPTS);
-        } catch (e) {
-          logGA("Admin Peer constructor error", e);
-          scheduleReconnect();
-          return;
-        }
-
-        adminPeer.on("open", (id) => {
-          logGA("Admin Monitor online: " + id);
-          backoffMs = 1000;
-          document.getElementById("dupAdminBanner").style.display = "none";
-          setAdminPill("Monitor Online", "ok");
-          updateDebugLine();
-        });
-
-        adminPeer.on("connection", (conn) => {
-          handleIncomingConnection(conn);
-        });
-
-        adminPeer.on("disconnected", () => {
-          logGA("Admin signaling disconnected");
-          setAdminPill("Reconnecting…", "warn");
-          try { adminPeer.reconnect(); } catch (e) { scheduleReconnect(); }
-        });
-
-        adminPeer.on("error", (err) => {
-          logGA("Admin peer error", err);
-          if (err && err.type === "unavailable-id") {
-            document.getElementById("dupAdminBanner").style.display = "block";
-            setAdminPill("ID In Use (Duplicate Tab)", "err");
-          } else {
-            setAdminPill("Reconnecting…", "err");
-          }
-          scheduleReconnect();
-        });
-        return;
-      }
-
-      if (adminPeer.disconnected) {
-        setAdminPill("Reconnecting…", "warn");
-        try { adminPeer.reconnect(); } catch (e) { scheduleReconnect(); }
-      }
-    }
-
-    function scheduleReconnect() {
-      if (reconnectTimer) return;
-      const delay = backoffMs;
-      backoffMs = Math.min(10000, backoffMs * 2);
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        if (adminPeer && adminPeer.disconnected && !adminPeer.destroyed) {
-          try { adminPeer.reconnect(); return; } catch (e) {}
-        }
-        if (adminPeer) {
-          try { adminPeer.destroy(); } catch (e) {}
-          adminPeer = null;
-        }
-        ensureAdminPeer();
-      }, delay);
-    }
-
-    // Extract WebRTC ICE candidate IP/transport type if exposed by browser
-    function inspectWebRTCRemoteAddress(conn, record) {
-      try {
-        const pc = conn.peerConnection;
-        if (!pc || !pc.getStats) return;
-        pc.getStats().then(stats => {
-          stats.forEach(report => {
-            if (report.type === "candidate-pair" && report.state === "succeeded" && report.remoteCandidateId) {
-              const rem = stats.get(report.remoteCandidateId);
-              if (rem) {
-                const addr = rem.address || rem.ip || "";
-                const cType = rem.candidateType || "";
-                const proto = rem.protocol || "";
-                if (addr) {
-                  record.iceAddress = `${addr} (${cType}/${proto})`;
-                } else if (cType) {
-                  record.iceAddress = `via ${cType.toUpperCase()} (${proto})`;
-                }
-              }
-            }
-          });
-        }).catch(() => {});
-      } catch (e) {}
-    }
-
-    function handleIncomingConnection(conn) {
-      conn.on("open", () => {
-        try {
-          conn.send({ t: "state", locked: globalLocked });
-        } catch (e) {
-          logGA("Failed sending initial state", e);
-        }
-      });
-
-      conn.on("data", (data) => {
-        try {
-          if (!data || typeof data !== "object") return;
-          const playerId = String(data.id || conn.peer).slice(0, 40);
-          if (!playerId) return;
-
-          let rec = players.get(playerId);
-          if (!rec) {
-            rec = {
-              id: playerId,
-              conn: conn,
-              name: "Player",
-              device: "Other",
-              meta: {},
-              iceAddress: "Detecting…",
-              score: 0,
-              streak: 0,
-              state: "idle",
-              target: "—",
-              frame: null,
-              lastSeen: Date.now(),
-              closed: false,
-              els: null
-            };
-            players.set(playerId, rec);
-            createPlayerCardDOM(rec);
-          } else {
-            // Replace old connection cleanly without duplicating card
-            if (rec.conn && rec.conn !== conn) {
-              try { rec.conn.close(); } catch (e) {}
-            }
-            rec.conn = conn;
-            rec.closed = false;
-          }
-
-          rec.lastSeen = Date.now();
-          inspectWebRTCRemoteAddress(conn, rec);
-
-          if (data.t === "hello" || data.t === "tel") {
-            if (typeof data.name === "string" && data.name.trim()) {
-              rec.name = data.name.trim().slice(0, 20);
-            }
-            if (typeof data.device === "string") {
-              rec.device = ["iPhone", "Android", "Windows", "Mac", "Other"].includes(data.device) ? data.device : "Other";
-            }
-            if (data.meta && typeof data.meta === "object") {
-              rec.meta = data.meta;
-            }
-            if (data.t === "tel") {
-              rec.score = Number.isFinite(data.score) ? data.score : 0;
-              rec.streak = Number.isFinite(data.streak) ? data.streak : 0;
-              rec.state = ["idle", "playing", "finished", "locked"].includes(data.state) ? data.state : "idle";
-              rec.target = typeof data.target === "string" ? data.target.slice(0, 24) : "—";
-              if (typeof data.frame === "string" && data.frame.startsWith("data:image/jpeg;base64,")) {
-                rec.frame = data.frame;
-              }
-            }
-            updatePlayerCardDOM(rec);
-          } else if (data.t === "msg" && typeof data.text === "string") {
-            appendDM(rec, data.name || rec.name, data.text.slice(0, 200), false);
-            updatePlayerCardDOM(rec);
-          }
-          refreshSummaryCounts();
-        } catch (err) {
-          logGA("Error handling player data", err);
-        }
-      });
-
-      conn.on("close", () => {
-        players.forEach(rec => {
-          if (rec.conn === conn) {
-            rec.closed = true;
-            updatePlayerCardDOM(rec);
-          }
-        });
-        refreshSummaryCounts();
-      });
-
-      conn.on("error", (err) => {
-        logGA("Player connection error", err);
-      });
-    }
-
-    // === SAFE DOM CONSTRUCTION (textContent only, zero innerHTML with untrusted data) ===
-    function createPlayerCardDOM(rec) {
-      const emptyEl = document.getElementById("emptyState");
-      if (emptyEl) emptyEl.style.display = "none";
-
-      const card = document.createElement("div");
-      card.className = "player-card";
-
-      // Top row: dot, name, device badge
-      const topRow = document.createElement("div");
-      topRow.className = "card-top";
-
-      const nameGroup = document.createElement("div");
-      nameGroup.className = "name-group";
-
-      const dotEl = document.createElement("div");
-      dotEl.className = "status-dot online";
-
-      const nameEl = document.createElement("div");
-      nameEl.className = "player-name";
-      nameEl.textContent = rec.name;
-
-      nameGroup.appendChild(dotEl);
-      nameGroup.appendChild(nameEl);
-
-      const devBadge = document.createElement("span");
-      devBadge.className = "dev-badge dev-Other";
-      devBadge.textContent = rec.device;
-
-      topRow.appendChild(nameGroup);
-      topRow.appendChild(devBadge);
-
-      // Camera box
-      const camBox = document.createElement("div");
-      camBox.className = "cam-box";
-
-      const placeholderEl = document.createElement("div");
-      placeholderEl.className = "cam-placeholder";
-      placeholderEl.textContent = "Waiting for camera stream…";
-
-      const imgEl = document.createElement("img");
-      imgEl.alt = "Live player camera";
-
-      const camHud = document.createElement("div");
-      camHud.className = "cam-hud";
-
-      const stateTextEl = document.createElement("span");
-      stateTextEl.textContent = "State: idle";
-
-      const seenTextEl = document.createElement("span");
-      seenTextEl.textContent = "Last seen 0s ago";
-
-      camHud.appendChild(stateTextEl);
-      camHud.appendChild(seenTextEl);
-
-      camBox.appendChild(placeholderEl);
-      camBox.appendChild(imgEl);
-      camBox.appendChild(camHud);
-
-      // Metrics row
-      const metricsGrid = document.createElement("div");
-      metricsGrid.className = "metrics-grid";
-
-      function makeMetricBox(label) {
-        const box = document.createElement("div");
-        const val = document.createElement("div");
-        val.className = "m-val";
-        val.textContent = "0";
-        const lbl = document.createElement("div");
-        lbl.className = "m-lbl";
-        lbl.textContent = label;
-        box.appendChild(val);
-        box.appendChild(lbl);
-        return { box, val };
-      }
-
-      const scoreM = makeMetricBox("Score");
-      const streakM = makeMetricBox("Streak");
-      const targetM = makeMetricBox("Target");
-      targetM.val.textContent = "—";
-
-      metricsGrid.appendChild(scoreM.box);
-      metricsGrid.appendChild(streakM.box);
-      metricsGrid.appendChild(targetM.box);
-
-      // Extended System & Network Telemetry Box
-      const sysBox = document.createElement("div");
-      sysBox.className = "sys-info";
-
-      function makeSysRow(label) {
-        const row = document.createElement("div");
-        row.className = "sys-row";
-        const k = document.createElement("span");
-        k.textContent = label;
-        const v = document.createElement("span");
-        v.className = "val";
-        v.textContent = "—";
-        row.appendChild(k);
-        row.appendChild(v);
-        sysBox.appendChild(row);
-        return v;
-      }
-
-      const ipVal = makeSysRow("Public IP:");
-      const iceVal = makeSysRow("WebRTC Route:");
-      const browserVal = makeSysRow("Browser / OS:");
-      const screenVal = makeSysRow("Screen / GPU:");
-      const idVal = makeSysRow("Device ID / TZ:");
-
-      // Action buttons for individual player
-      const btnRow = document.createElement("div");
-      btnRow.className = "card-btns";
-
-      const resetBtn = document.createElement("button");
-      resetBtn.className = "secondary";
-      resetBtn.textContent = "Reset";
-      resetBtn.onclick = () => sendCmdToPlayer(rec, "reset");
-
-      const lockBtn = document.createElement("button");
-      lockBtn.className = "warning";
-      lockBtn.textContent = "Lock";
-      lockBtn.onclick = () => sendCmdToPlayer(rec, "lock");
-
-      const unlockBtn = document.createElement("button");
-      unlockBtn.textContent = "Unlock";
-      unlockBtn.onclick = () => sendCmdToPlayer(rec, "unlock");
-
-      btnRow.appendChild(resetBtn);
-      btnRow.appendChild(lockBtn);
-      btnRow.appendChild(unlockBtn);
-
-      // Direct Messaging Box (Admin initiates -> unlocks player's reply box)
-      const dmBox = document.createElement("div");
-      dmBox.className = "dm-box";
-
-      const dmLog = document.createElement("div");
-      dmLog.className = "dm-log";
-      const dmHint = document.createElement("div");
-      dmHint.style.color = "var(--muted)";
-      dmHint.textContent = "Message player to open two-way chat…";
-      dmLog.appendChild(dmHint);
-
-      const dmInputRow = document.createElement("div");
-      dmInputRow.className = "dm-input-row";
-
-      const dmInput = document.createElement("input");
-      dmInput.type = "text";
-      dmInput.maxLength = 200;
-      dmInput.placeholder = "Message player…";
-
-      const dmSendBtn = document.createElement("button");
-      dmSendBtn.textContent = "Send";
-
-      const triggerSendDM = () => {
-        const text = dmInput.value.trim().slice(0, 200);
-        if (!text) return;
-        if (rec.conn && rec.conn.open) {
-          try {
-            rec.conn.send({ t: "msg", text: text, ts: Date.now() });
-            appendDM(rec, "Admin", text, true);
-            dmInput.value = "";
-          } catch (e) {
-            logGA("DM send error", e);
-          }
-        }
-      };
-
-      dmInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") triggerSendDM();
-      });
-      dmSendBtn.onclick = triggerSendDM;
-
-      dmInputRow.appendChild(dmInput);
-      dmInputRow.appendChild(dmSendBtn);
-
-      dmBox.appendChild(dmLog);
-      dmBox.appendChild(dmInputRow);
-
-      card.appendChild(topRow);
-      card.appendChild(camBox);
-      card.appendChild(metricsGrid);
-      card.appendChild(sysBox);
-      card.appendChild(btnRow);
-      card.appendChild(dmBox);
-
-      document.getElementById("playersGrid").appendChild(card);
-
-      rec.els = {
-        card, dotEl, nameEl, devBadge,
-        placeholderEl, imgEl, stateTextEl, seenTextEl,
-        scoreVal: scoreM.val, streakVal: streakM.val, targetVal: targetM.val,
-        ipVal, iceVal, browserVal, screenVal, idVal,
-        dmLog, dmHint
-      };
-    }
-
-    function appendDM(rec, senderName, text, isFromAdmin) {
-      if (!rec.els) return;
-      if (rec.els.dmHint && rec.els.dmHint.parentNode) {
-        rec.els.dmHint.remove();
-      }
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "dm-msg " + (isFromAdmin ? "from-admin" : "from-player");
-      msgDiv.textContent = `${isFromAdmin ? "You" : senderName}: ${text}`;
-      rec.els.dmLog.appendChild(msgDiv);
-      rec.els.dmLog.scrollTop = rec.els.dmLog.scrollHeight;
-    }
-
-    function computeStatus(rec, now) {
-      if (rec.closed || !rec.conn || !rec.conn.open) return "offline";
-      const ageMs = now - rec.lastSeen;
-      if (ageMs <= 4000) return "online";
-      if (ageMs <= 10000) return "stale";
-      return "offline";
-    }
-
-    function updatePlayerCardDOM(rec) {
-      if (!rec.els) return;
-      const now = Date.now();
-      const status = computeStatus(rec, now);
-      const secAgo = Math.max(0, Math.floor((now - rec.lastSeen) / 1000));
-
-      rec.els.dotEl.className = "status-dot " + status;
-      rec.els.nameEl.textContent = rec.name;
-      rec.els.devBadge.className = "dev-badge dev-" + rec.device;
-      rec.els.devBadge.textContent = rec.device;
-
-      rec.els.stateTextEl.textContent = "State: " + rec.state;
-      rec.els.seenTextEl.textContent = `Last seen ${secAgo}s ago`;
-
-      rec.els.scoreVal.textContent = String(rec.score);
-      rec.els.streakVal.textContent = String(rec.streak);
-      rec.els.targetVal.textContent = rec.target || "—";
-
-      const m = rec.meta || {};
-      rec.els.ipVal.textContent = String(m.ip || "Unknown").slice(0, 45);
-      rec.els.iceVal.textContent = String(rec.iceAddress || "TURN/STUN").slice(0, 45);
-      rec.els.browserVal.textContent = `${String(m.browser || "Browser").slice(0, 25)} • ${String(m.os || rec.device).slice(0, 20)}`;
-      rec.els.screenVal.textContent = `${String(m.screen || "?").slice(0, 18)} • ${String(m.gpu || "GPU").slice(0, 24)}`;
-      rec.els.idVal.textContent = `${rec.id} (${String(m.tz || "UTC").slice(0, 22)})`;
-
-      if (rec.frame && rec.frame.startsWith("data:image/jpeg;base64,")) {
-        rec.els.imgEl.src = rec.frame;
-        rec.els.imgEl.style.display = "block";
-        rec.els.placeholderEl.style.display = "none";
-      }
-    }
-
-    // === ADMIN COMMANDS ===
-    function sendCmdToPlayer(rec, cmd) {
-      if (rec.conn && rec.conn.open) {
-        try {
-          rec.conn.send({ t: "cmd", cmd: cmd });
-        } catch (e) {
-          logGA("Failed sending command to " + rec.id, e);
-        }
-      }
-    }
-
-    function broadcastCmd(cmd) {
-      players.forEach(rec => sendCmdToPlayer(rec, cmd));
-    }
-
-    function setGlobalLock(locked) {
-      globalLocked = Boolean(locked);
-      const cmd = globalLocked ? "lock" : "unlock";
-      players.forEach(rec => {
-        if (rec.conn && rec.conn.open) {
-          try {
-            rec.conn.send({ t: "state", locked: globalLocked });
-            rec.conn.send({ t: "cmd", cmd: cmd });
-          } catch (e) {}
-        }
-      });
-      updateDebugLine();
-    }
-
-    function clearOfflineCards() {
-      const now = Date.now();
-      players.forEach((rec, id) => {
-        if (computeStatus(rec, now) === "offline") {
-          if (rec.els && rec.els.card) rec.els.card.remove();
-          players.delete(id);
-        }
-      });
-      if (players.size === 0) {
-        const emptyEl = document.getElementById("emptyState");
-        if (emptyEl) emptyEl.style.display = "block";
-      }
-      refreshSummaryCounts();
-    }
-
-    function refreshSummaryCounts() {
-      const now = Date.now();
-      let online = 0;
-      players.forEach(rec => {
-        updatePlayerCardDOM(rec);
-        if (computeStatus(rec, now) === "online") online++;
-      });
-      document.getElementById("onlineCount").textContent = String(online);
-      document.getElementById("totalCount").textContent = String(players.size);
-      updateDebugLine();
-    }
-
-    // === LIFECYCLE & WAKE RECOVERY ===
-    let adminUnlocked = false;
-
-    function handleAdminWake() {
-      if (!adminUnlocked) return;
-      if (document.visibilityState === "hidden") return;
-      ensureAdminPeer();
-    }
-
-    document.addEventListener("visibilitychange", handleAdminWake);
-    window.addEventListener("focus", handleAdminWake);
-    window.addEventListener("pageshow", handleAdminWake);
-    window.addEventListener("online", handleAdminWake);
-
-    // === PASSWORD GATE (client-side; SHA-256 of the password) ===
-    const ADMIN_PW_HASH = "4ea140588150773ce3aace786aeef7f4049ce100fa649c94fbbddb960f1da942";
-
-    async function sha256Hex(text) {
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    function unlockAdmin() {
-      if (adminUnlocked) return;
-      adminUnlocked = true;
-      document.getElementById("authOverlay").classList.add("hidden");
-      ensureAdminPeer();
-      setInterval(refreshSummaryCounts, 1000);
-    }
-
-    async function submitAdminPassword() {
-      const input = document.getElementById("authInput");
-      const err = document.getElementById("authErr");
-      let ok = false;
-      try { ok = (await sha256Hex(input.value.trim())) === ADMIN_PW_HASH; } catch (e) { ok = false; }
-      if (ok) {
-        try { sessionStorage.setItem("ga_admin_ok", "1"); } catch (e) {}
-        err.classList.remove("show");
-        unlockAdmin();
-      } else {
-        err.classList.add("show");
-        input.value = "";
-        input.focus();
-      }
-    }
-
-    document.getElementById("authInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submitAdminPassword();
     });
 
-    let alreadyOk = false;
-    try { alreadyOk = sessionStorage.getItem("ga_admin_ok") === "1"; } catch (e) {}
-    if (alreadyOk) unlockAdmin(); else document.getElementById("authInput").focus();
-  </script>
+    adminPeer.on("connection", (conn) => {
+      handleIncomingConnection(conn);
+    });
+
+    adminPeer.on("disconnected", () => {
+      logGA("Admin signaling disconnected");
+      setAdminPill("Reconnecting…", "warn");
+      try { adminPeer.reconnect(); } catch (e) { scheduleReconnect(); }
+    });
+
+    adminPeer.on("error", (err) => {
+      logGA("Admin peer error", err);
+      if (err && err.type === "unavailable-id") {
+        document.getElementById("dupAdminBanner").style.display = "block";
+        setAdminPill("ID In Use (Duplicate Tab)", "err");
+      } else {
+        setAdminPill("Reconnecting…", "err");
+      }
+      scheduleReconnect();
+    });
+    return;
+  }
+
+  if (adminPeer.disconnected) {
+    setAdminPill("Reconnecting…", "warn");
+    try { adminPeer.reconnect(); } catch (e) { scheduleReconnect(); }
+  }
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  const delay = backoffMs;
+  backoffMs = Math.min(10000, backoffMs * 2);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (adminPeer && adminPeer.disconnected && !adminPeer.destroyed) {
+      try { adminPeer.reconnect(); return; } catch (e) {}
+    }
+    if (adminPeer) {
+      try { adminPeer.destroy(); } catch (e) {}
+      adminPeer = null;
+    }
+    ensureAdminPeer();
+  }, delay);
+}
+
+// Extract WebRTC ICE candidate IP/transport type if exposed by browser
+function inspectWebRTCRemoteAddress(conn, record) {
+  try {
+    const pc = conn.peerConnection;
+    if (!pc || !pc.getStats) return;
+    pc.getStats().then(stats => {
+      stats.forEach(report => {
+        if (report.type === "candidate-pair" && report.state === "succeeded" && report.remoteCandidateId) {
+          const rem = stats.get(report.remoteCandidateId);
+          if (rem) {
+            const addr = rem.address || rem.ip || "";
+            const cType = rem.candidateType || "";
+            const proto = rem.protocol || "";
+            if (addr) {
+              record.iceAddress = `${addr} (${cType}/${proto})`;
+            } else if (cType) {
+              record.iceAddress = `via ${cType.toUpperCase()} (${proto})`;
+            }
+          }
+        }
+      });
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+function handleIncomingConnection(conn) {
+  conn.on("open", () => {
+    try {
+      conn.send({ t: "state", locked: globalLocked });
+    } catch (e) {
+      logGA("Failed sending initial state", e);
+    }
+  });
+
+  conn.on("data", (data) => {
+    try {
+      if (!data || typeof data !== "object") return;
+      // FIX: "snap" messages carry the device id inside data.snap (not at the top level).
+      // Without this they fell back to conn.peer and created a second, empty "ghost" card per player.
+      const playerId = String((data.t === "snap" && data.snap && data.snap.id) || data.id || conn.peer).slice(0, 40);
+      if (!playerId) return;
+
+      let rec = players.get(playerId);
+      if (!rec) {
+        rec = {
+          id: playerId,
+          conn: conn,
+          name: "Player",
+          device: "Other",
+          meta: {},
+          iceAddress: "Detecting…",
+          score: 0,
+          streak: 0,
+          state: "idle",
+          target: "—",
+          frame: null,
+          lastSeen: Date.now(),
+          closed: false,
+          els: null
+        };
+        players.set(playerId, rec);
+        createPlayerCardDOM(rec);
+      } else {
+        // Replace old connection cleanly without duplicating card
+        if (rec.conn && rec.conn !== conn) {
+          try { rec.conn.close(); } catch (e) {}
+        }
+        rec.conn = conn;
+        rec.closed = false;
+      }
+
+      rec.lastSeen = Date.now();
+      inspectWebRTCRemoteAddress(conn, rec);
+
+      if (data.t === "hello" || data.t === "visit" || data.t === "tel") {
+        if (typeof data.name === "string" && data.name.trim()) {
+          rec.name = data.name.trim().slice(0, 20);
+        }
+        if (typeof data.device === "string") {
+          rec.device = ["iPhone", "Android", "Windows", "Mac", "Other"].includes(data.device) ? data.device : "Other";
+        }
+        if (data.meta && typeof data.meta === "object") {
+          rec.meta = data.meta;
+        }
+        if (data.t === "tel") {
+          rec.score = Number.isFinite(data.score) ? data.score : 0;
+          rec.streak = Number.isFinite(data.streak) ? data.streak : 0;
+          rec.state = ["idle", "playing", "finished", "locked"].includes(data.state) ? data.state : "idle";
+          rec.target = typeof data.target === "string" ? data.target.slice(0, 24) : "—";
+          if (typeof data.frame === "string" && data.frame.startsWith("data:image/jpeg;base64,")) {
+            rec.frame = data.frame;
+          }
+        }
+        updatePlayerCardDOM(rec);
+      } else if (data.t === "msg" && typeof data.text === "string") {
+        appendDM(rec, data.name || rec.name, data.text.slice(0, 200), false);
+        updatePlayerCardDOM(rec);
+      }
+      refreshSummaryCounts();
+    } catch (err) {
+      logGA("Error handling player data", err);
+    }
+  });
+
+  conn.on("close", () => {
+    players.forEach(rec => {
+      if (rec.conn === conn) {
+        rec.closed = true;
+        updatePlayerCardDOM(rec);
+      }
+    });
+    refreshSummaryCounts();
+  });
+
+  conn.on("error", (err) => {
+    logGA("Player connection error", err);
+  });
+}
+
+// === SAFE DOM CONSTRUCTION (textContent only, zero innerHTML with untrusted data) ===
+function createPlayerCardDOM(rec) {
+  const emptyEl = document.getElementById("emptyState");
+  if (emptyEl) emptyEl.style.display = "none";
+
+  const card = document.createElement("div");
+  card.className = "player-card";
+
+  const topRow = document.createElement("div");
+  topRow.className = "card-top";
+
+  const nameGroup = document.createElement("div");
+  nameGroup.className = "name-group";
+
+  const dotEl = document.createElement("div");
+  dotEl.className = "status-dot online";
+
+  const nameEl = document.createElement("div");
+  nameEl.className = "player-name";
+  nameEl.textContent = rec.name;
+
+  nameGroup.appendChild(dotEl);
+  nameGroup.appendChild(nameEl);
+
+  const devBadge = document.createElement("span");
+  devBadge.className = "dev-badge dev-Other";
+  devBadge.textContent = rec.device;
+
+  topRow.appendChild(nameGroup);
+  topRow.appendChild(devBadge);
+
+  const camBox = document.createElement("div");
+  camBox.className = "cam-box";
+
+  const placeholderEl = document.createElement("div");
+  placeholderEl.className = "cam-placeholder";
+  placeholderEl.textContent = "Waiting for camera stream…";
+
+  const imgEl = document.createElement("img");
+  imgEl.alt = "Live player camera";
+
+  const camHud = document.createElement("div");
+  camHud.className = "cam-hud";
+
+  const stateTextEl = document.createElement("span");
+  stateTextEl.textContent = "State: idle";
+
+  const seenTextEl = document.createElement("span");
+  seenTextEl.textContent = "Last seen 0s ago";
+
+  camHud.appendChild(stateTextEl);
+  camHud.appendChild(seenTextEl);
+
+  camBox.appendChild(placeholderEl);
+  camBox.appendChild(imgEl);
+  camBox.appendChild(camHud);
+
+  const metricsGrid = document.createElement("div");
+  metricsGrid.className = "metrics-grid";
+
+  function makeMetricBox(label) {
+    const box = document.createElement("div");
+    const val = document.createElement("div");
+    val.className = "m-val";
+    val.textContent = "0";
+    const lbl = document.createElement("div");
+    lbl.className = "m-lbl";
+    lbl.textContent = label;
+    box.appendChild(val);
+    box.appendChild(lbl);
+    return { box, val };
+  }
+
+  const scoreM = makeMetricBox("Score");
+  const streakM = makeMetricBox("Streak");
+  const targetM = makeMetricBox("Target");
+  targetM.val.textContent = "—";
+
+  metricsGrid.appendChild(scoreM.box);
+  metricsGrid.appendChild(streakM.box);
+  metricsGrid.appendChild(targetM.box);
+
+  const sysBox = document.createElement("div");
+  sysBox.className = "sys-info";
+
+  function makeSysRow(label) {
+    const row = document.createElement("div");
+    row.className = "sys-row";
+    const k = document.createElement("span");
+    k.textContent = label;
+    const v = document.createElement("span");
+    v.className = "val";
+    v.textContent = "—";
+    row.appendChild(k);
+    row.appendChild(v);
+    sysBox.appendChild(row);
+    return v;
+  }
+
+  const ipVal = makeSysRow("Public IP:");
+  const iceVal = makeSysRow("WebRTC Route:");
+  const browserVal = makeSysRow("Browser / OS:");
+  const screenVal = makeSysRow("Screen / GPU:");
+  const idVal = makeSysRow("Device ID / TZ:");
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "card-btns";
+
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "secondary";
+  resetBtn.textContent = "Reset";
+  resetBtn.onclick = () => sendCmdToPlayer(rec, "reset");
+
+  const lockBtn = document.createElement("button");
+  lockBtn.className = "warning";
+  lockBtn.textContent = "Lock";
+  lockBtn.onclick = () => sendCmdToPlayer(rec, "lock");
+
+  const unlockBtn = document.createElement("button");
+  unlockBtn.textContent = "Unlock";
+  unlockBtn.onclick = () => sendCmdToPlayer(rec, "unlock");
+
+  btnRow.appendChild(resetBtn);
+  btnRow.appendChild(lockBtn);
+  btnRow.appendChild(unlockBtn);
+
+  const dmBox = document.createElement("div");
+  dmBox.className = "dm-box";
+
+  const dmLog = document.createElement("div");
+  dmLog.className = "dm-log";
+  const dmHint = document.createElement("div");
+  dmHint.style.color = "var(--muted)";
+  dmHint.textContent = "Message player to open two-way chat…";
+  dmLog.appendChild(dmHint);
+
+  const dmInputRow = document.createElement("div");
+  dmInputRow.className = "dm-input-row";
+
+  const dmInput = document.createElement("input");
+  dmInput.type = "text";
+  dmInput.maxLength = 200;
+  dmInput.placeholder = "Message player…";
+
+  const dmSendBtn = document.createElement("button");
+  dmSendBtn.textContent = "Send";
+
+  const triggerSendDM = () => {
+    const text = dmInput.value.trim().slice(0, 200);
+    if (!text) return;
+    if (rec.conn && rec.conn.open) {
+      try {
+        rec.conn.send({ t: "msg", text: text, ts: Date.now() });
+        appendDM(rec, "Admin", text, true);
+        dmInput.value = "";
+      } catch (e) {
+        logGA("DM send error", e);
+      }
+    }
+  };
+
+  dmInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") triggerSendDM();
+  });
+  dmSendBtn.onclick = triggerSendDM;
+
+  dmInputRow.appendChild(dmInput);
+  dmInputRow.appendChild(dmSendBtn);
+
+  dmBox.appendChild(dmLog);
+  dmBox.appendChild(dmInputRow);
+
+  card.appendChild(topRow);
+  card.appendChild(camBox);
+  card.appendChild(metricsGrid);
+  card.appendChild(sysBox);
+  card.appendChild(btnRow);
+  card.appendChild(dmBox);
+
+  document.getElementById("playersGrid").appendChild(card);
+
+  rec.els = {
+    card, dotEl, nameEl, devBadge,
+    placeholderEl, imgEl, stateTextEl, seenTextEl,
+    scoreVal: scoreM.val, streakVal: streakM.val, targetVal: targetM.val,
+    ipVal, iceVal, browserVal, screenVal, idVal,
+    dmLog, dmHint
+  };
+}
+
+function appendDM(rec, senderName, text, isFromAdmin) {
+  if (!rec.els) return;
+  if (rec.els.dmHint && rec.els.dmHint.parentNode) {
+    rec.els.dmHint.remove();
+  }
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "dm-msg " + (isFromAdmin ? "from-admin" : "from-player");
+  msgDiv.textContent = `${isFromAdmin ? "You" : senderName}: ${text}`;
+  rec.els.dmLog.appendChild(msgDiv);
+  rec.els.dmLog.scrollTop = rec.els.dmLog.scrollHeight;
+}
+
+function computeStatus(rec, now) {
+  if (rec.closed || !rec.conn || !rec.conn.open) return "offline";
+  const ageMs = now - rec.lastSeen;
+  if (ageMs <= 4000) return "online";
+  if (ageMs <= 10000) return "stale";
+  return "offline";
+}
+
+function updatePlayerCardDOM(rec) {
+  if (!rec.els) return;
+  const now = Date.now();
+  const status = computeStatus(rec, now);
+  const secAgo = Math.max(0, Math.floor((now - rec.lastSeen) / 1000));
+
+  rec.els.dotEl.className = "status-dot " + status;
+  rec.els.nameEl.textContent = rec.name;
+  rec.els.devBadge.className = "dev-badge dev-" + rec.device;
+  rec.els.devBadge.textContent = rec.device;
+
+  rec.els.stateTextEl.textContent = "State: " + rec.state;
+  rec.els.seenTextEl.textContent = `Last seen ${secAgo}s ago`;
+
+  rec.els.scoreVal.textContent = String(rec.score);
+  rec.els.streakVal.textContent = String(rec.streak);
+  rec.els.targetVal.textContent = rec.target || "—";
+
+  const m = rec.meta || {};
+  rec.els.ipVal.textContent = String(m.ip || "Unknown").slice(0, 45);
+  rec.els.iceVal.textContent = String(rec.iceAddress || "TURN/STUN").slice(0, 45);
+  rec.els.browserVal.textContent = `${String(m.browser || "Browser").slice(0, 25)} • ${String(m.os || rec.device).slice(0, 20)}`;
+  rec.els.screenVal.textContent = `${String(m.screen || "?").slice(0, 18)} • ${String(m.gpu || "GPU").slice(0, 24)}`;
+  rec.els.idVal.textContent = `${rec.id} (${String(m.tz || "UTC").slice(0, 22)})`;
+
+  if (rec.frame && rec.frame.startsWith("data:image/jpeg;base64,")) {
+    rec.els.imgEl.src = rec.frame;
+    rec.els.imgEl.style.display = "block";
+    rec.els.placeholderEl.style.display = "none";
+  }
+}
+
+// === ADMIN COMMANDS ===
+function sendCmdToPlayer(rec, cmd) {
+  if (rec.conn && rec.conn.open) {
+    try {
+      rec.conn.send({ t: "cmd", cmd: cmd });
+    } catch (e) {
+      logGA("Failed sending command to " + rec.id, e);
+    }
+  }
+}
+
+function broadcastCmd(cmd) {
+  players.forEach(rec => sendCmdToPlayer(rec, cmd));
+}
+
+function setGlobalLock(locked) {
+  globalLocked = Boolean(locked);
+  const cmd = globalLocked ? "lock" : "unlock";
+  players.forEach(rec => {
+    if (rec.conn && rec.conn.open) {
+      try {
+        rec.conn.send({ t: "state", locked: globalLocked });
+        rec.conn.send({ t: "cmd", cmd: cmd });
+      } catch (e) {}
+    }
+  });
+  updateDebugLine();
+}
+
+function clearOfflineCards() {
+  const now = Date.now();
+  players.forEach((rec, id) => {
+    if (computeStatus(rec, now) === "offline") {
+      if (rec.els && rec.els.card) rec.els.card.remove();
+      players.delete(id);
+    }
+  });
+  if (players.size === 0) {
+    const emptyEl = document.getElementById("emptyState");
+    if (emptyEl) emptyEl.style.display = "block";
+  }
+  refreshSummaryCounts();
+}
+
+function refreshSummaryCounts() {
+  const now = Date.now();
+  let online = 0;
+  players.forEach(rec => {
+    updatePlayerCardDOM(rec);
+    if (computeStatus(rec, now) === "online") online++;
+  });
+  document.getElementById("onlineCount").textContent = String(online);
+  document.getElementById("totalCount").textContent = String(players.size);
+  updateDebugLine();
+}
+
+// === LIFECYCLE & WAKE RECOVERY ===
+let adminUnlocked = false;
+
+function handleAdminWake() {
+  if (!adminUnlocked) return;
+  if (document.visibilityState === "hidden") return;
+  ensureAdminPeer();
+}
+
+document.addEventListener("visibilitychange", handleAdminWake);
+window.addEventListener("focus", handleAdminWake);
+window.addEventListener("pageshow", handleAdminWake);
+window.addEventListener("online", handleAdminWake);
+
+// === PASSWORD GATE (client-side; SHA-256 of the password) ===
+const ADMIN_PW_HASH = "4ea140588150773ce3aace786aeef7f4049ce100fa649c94fbbddb960f1da942";
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function unlockAdmin() {
+  if (adminUnlocked) return;
+  adminUnlocked = true;
+  document.getElementById("authOverlay").classList.add("hidden");
+  ensureAdminPeer();
+  setInterval(refreshSummaryCounts, 1000);
+}
+
+async function submitAdminPassword() {
+  const input = document.getElementById("authInput");
+  const err = document.getElementById("authErr");
+  let ok = false;
+  try { ok = (await sha256Hex(input.value.trim())) === ADMIN_PW_HASH; } catch (e) { ok = false; }
+  if (ok) {
+    try { sessionStorage.setItem("ga_admin_ok", "1"); } catch (e) {}
+    err.classList.remove("show");
+    unlockAdmin();
+  } else {
+    err.classList.add("show");
+    input.value = "";
+    input.focus();
+  }
+}
+
+document.getElementById("authInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitAdminPassword();
+});
+
+let alreadyOk = false;
+try { alreadyOk = sessionStorage.getItem("ga_admin_ok") === "1"; } catch (e) {}
+if (alreadyOk) unlockAdmin(); else document.getElementById("authInput").focus();
+</script>
 </body>
 </html>
