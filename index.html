@@ -1371,5 +1371,74 @@
       showStatusOverlay("Tap to Start Camera", tapMsg, true);
     });
   </script>
+  <!-- FLOATING ADMIN MESSAGE OVERLAY PATCH (Zero changes to existing logic) -->
+<style>
+  .ga-floating-admin-card {
+    position: fixed !important;
+    bottom: 14px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(92vw, 540px) !important;
+    z-index: 9999 !important;
+    margin: 0 !important;
+    background: rgba(10, 17, 32, 0.86) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1.5px solid rgba(56, 189, 248, 0.7) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(14, 165, 233, 0.25) !important;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease !important;
+  }
+
+  .ga-floating-admin-card.ga-admin-alert {
+    border-color: #f59e0b !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 158, 11, 0.65) !important;
+    animation: gaAdminPop 0.45s ease-out !important;
+  }
+
+  @keyframes gaAdminPop {
+    0%   { transform: translateX(-50%) translateY(16px) scale(0.96); }
+    60%  { transform: translateX(-50%) translateY(-4px) scale(1.02); }
+    100% { transform: translateX(-50%) translateY(0) scale(1); }
+  }
+</style>
+
+<script>
+  (function pinAdminBoxOverVideo() {
+    function attachFloatingAdmin() {
+      // Locate the existing "Reply to admin..." input inside your Admin card
+      const replyInput = document.querySelector('input[placeholder*="Reply to admin"]');
+      if (!replyInput) return;
+
+      // Walk up to the outer "DIRECT MESSAGE FROM ADMIN" container card
+      let card = replyInput.parentElement;
+      while (card && card !== document.body) {
+        if ((card.textContent || '').toUpperCase().includes('DIRECT MESSAGE FROM ADMIN')) {
+          break;
+        }
+        card = card.parentElement;
+      }
+
+      if (!card || card === document.body || card.classList.contains('ga-floating-admin-card')) return;
+
+      // Pin the existing card over the bottom of the screen/video feed
+      card.classList.add('ga-floating-admin-card');
+
+      // Pulse & auto-scroll whenever the admin sends a new message
+      const observer = new MutationObserver(() => {
+        card.classList.remove('ga-admin-alert');
+        void card.offsetWidth; // trigger reflow for animation
+        card.classList.add('ga-admin-alert');
+      });
+
+      observer.observe(card, { childList: true, subtree: true, characterData: true });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachFloatingAdmin);
+    } else {
+      attachFloatingAdmin();
+    }
+  })();
+</script>
 </body>
 </html>
