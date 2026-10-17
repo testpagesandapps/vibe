@@ -163,7 +163,7 @@
       <div class="goal-wrap">
         <div class="goal-top">
           <span class="goal-title">🏆 Goal: <span id="goalProgressText">0 / 1,000,000 pts</span></span>
-          <span class="goal-timer" id="cycleTimerText">05:00</span>
+          <span class="goal-timer" id="cycleTimerText">40:00</span>
         </div>
         <div class="goal-bar-bg">
           <div class="goal-bar-fill" id="goalBarFill"></div>
@@ -176,7 +176,7 @@
           <div class="stat-lbl">Points</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val" id="tierVal">1 / 16</div>
+          <div class="stat-val" id="tierVal">1 / 46</div>
           <div class="stat-lbl">Pose Tier</div>
         </div>
         <div class="stat-box">
@@ -217,7 +217,7 @@
 
         <div class="overlay-msg" id="statusOverlay">
           <h3 id="overlayTitle">Initializing Camera…</h3>
-          <p id="overlayDesc">Allow camera access or tap the big Start button above to begin your 5-minute run to 1,000,000 points.</p>
+          <p id="overlayDesc">Allow camera access or tap the big Start button above to begin your run to 1,000,000 points.</p>
           <button id="retryCamBtn" class="giant-start-btn" style="max-width:280px;" onclick="event.stopPropagation(); forceEngageCameraAndStart();">🎥 Enable Camera &amp; Start</button>
         </div>
 
@@ -254,7 +254,7 @@
     const SNAPSHOT_INTERVAL_MS = 8000;          // 8-second regular snapshot interval
     const MAX_BUFFERED_SNAPSHOTS = 120;
     const GOAL_POINTS = 1000000;
-    const GAME_CYCLE_SECONDS = 300;             // 5-minute cycle
+    const GAME_CYCLE_SECONDS = 2400;            // 40-minute cycle to accommodate ~30-minute endgame
 
     const ICE_SERVERS = [
       { urls: "stun:stun.l.google.com:19302" },
@@ -352,38 +352,71 @@
       })
       .catch(() => { clientMeta.ip = "N/A (Blocked)"; });
 
-    // === 16-TIER ESCALATING POSE PROGRESSION (Easy Hands -> Arms -> Body -> Feet) ===
+    // === 46-TIER ESCALATING POSE PROGRESSION ===
+    // Tiers 1-16: Intro & Warmup (~158,000 pts total)
+    // Tiers 17-46: The Final 30 Endgame Challenges (~842,000 pts total, ordered bottom-to-top)
+    // Hold times on Tiers 17-46 scale from 20s to 55s so the user spends ~30 minutes completing them
     const POSE_LADDER = [
       // Tier 1-5: Easy Hand Gestures
-      { id: "Thumbs Up", icon: "👍", type: "hand", pts: 10000, penalty: 2500, timeoutMs: 9000, holdMs: 450, hint: "Show a clear Thumbs Up to the camera (+10,000 pts)" },
-      { id: "Open Palm", icon: "✋", type: "hand", pts: 15000, penalty: 3500, timeoutMs: 9000, holdMs: 450, hint: "Spread all 5 fingers open (+15,000 pts)" },
-      { id: "Fist", icon: "✊", type: "hand", pts: 20000, penalty: 5000, timeoutMs: 9000, holdMs: 450, hint: "Close your hand into a solid fist (+20,000 pts)" },
-      { id: "Peace Sign", icon: "✌️", type: "hand", pts: 25000, penalty: 6000, timeoutMs: 9000, holdMs: 450, hint: "Extend index & middle fingers in a V (+25,000 pts)" },
-      { id: "Point", icon: "☝️", type: "hand", pts: 30000, penalty: 7500, timeoutMs: 9000, holdMs: 450, hint: "Point your index finger upward (+30,000 pts)" },
+      { id: "Thumbs Up", icon: "👍", type: "hand", pts: 3000, penalty: 1000, timeoutMs: 12000, holdMs: 1000, hint: "Show a clear Thumbs Up to the camera (+3,000 pts)" },
+      { id: "Open Palm", icon: "✋", type: "hand", pts: 4000, penalty: 1500, timeoutMs: 12000, holdMs: 1000, hint: "Spread all 5 fingers open (+4,000 pts)" },
+      { id: "Fist", icon: "✊", type: "hand", pts: 5000, penalty: 2000, timeoutMs: 12000, holdMs: 1200, hint: "Close your hand into a solid fist (+5,000 pts)" },
+      { id: "Peace Sign", icon: "✌️", type: "hand", pts: 6000, penalty: 2500, timeoutMs: 12000, holdMs: 1200, hint: "Extend index & middle fingers in a V (+6,000 pts)" },
+      { id: "Point", icon: "☝️", type: "hand", pts: 7000, penalty: 3000, timeoutMs: 12000, holdMs: 1500, hint: "Point your index finger upward (+7,000 pts)" },
 
       // Tier 6-10: Arm & Upper Body Poses
-      { id: "Bicep Flex", icon: "💪", type: "pose", pts: 40000, penalty: 10000, timeoutMs: 13000, holdMs: 750, hint: "Raise and flex one arm with hand near shoulder level (+40,000 pts)" },
-      { id: "Cross Arms", icon: "🙅", type: "pose", pts: 50000, penalty: 12000, timeoutMs: 13000, holdMs: 750, hint: "Cross both arms across your chest (+50,000 pts)" },
-      { id: "Self Hug", icon: "🫂", type: "pose", pts: 60000, penalty: 15000, timeoutMs: 14000, holdMs: 800, hint: "Wrap both hands around your opposite shoulders in a self-hug (+60,000 pts)" },
-      { id: "Double Bicep Pose", icon: "🏋️", type: "pose", pts: 75000, penalty: 18000, timeoutMs: 14000, holdMs: 850, hint: "Raise BOTH arms up in a classic double bicep flex (+75,000 pts)" },
-      { id: "Hand on Head", icon: "🙆", type: "pose", pts: 85000, penalty: 20000, timeoutMs: 14000, holdMs: 850, hint: "Place one or both hands directly on top of your head (+85,000 pts)" },
+      { id: "Bicep Flex", icon: "💪", type: "pose", pts: 8000, penalty: 3500, timeoutMs: 18000, holdMs: 2500, hint: "Raise and flex one arm with hand near shoulder level (+8,000 pts)" },
+      { id: "Cross Arms", icon: "🙅", type: "pose", pts: 9000, penalty: 4000, timeoutMs: 18000, holdMs: 2500, hint: "Cross both arms across your chest (+9,000 pts)" },
+      { id: "Self Hug", icon: "🫂", type: "pose", pts: 10000, penalty: 4500, timeoutMs: 20000, holdMs: 3000, hint: "Wrap both hands around your opposite shoulders in a self-hug (+10,000 pts)" },
+      { id: "Double Bicep Pose", icon: "🏋️", type: "pose", pts: 11000, penalty: 5000, timeoutMs: 20000, holdMs: 3000, hint: "Raise BOTH arms up in a classic double bicep flex (+11,000 pts)" },
+      { id: "Hand on Head", icon: "🙆", type: "pose", pts: 12000, penalty: 5500, timeoutMs: 20000, holdMs: 3500, hint: "Place one or both hands directly on top of your head (+12,000 pts)" },
 
-      // Tier 11-14: Torso, Hips, Booty & Knees
-      { id: "Hands on Stomach", icon: "🤲", type: "pose", pts: 95000, penalty: 22000, timeoutMs: 15000, holdMs: 900, hint: "Step back slightly & rest both hands on your stomach/belly (+95,000 pts)" },
-      { id: "Hands on Hips", icon: "🧍", type: "pose", pts: 110000, penalty: 25000, timeoutMs: 15000, holdMs: 900, hint: "Stand with both hands placed firmly on your hips (+110,000 pts)" },
-      { id: "Hands on Booty", icon: "🍑", type: "pose", pts: 125000, penalty: 30000, timeoutMs: 16000, holdMs: 950, hint: "Angle or turn & place both hands on your booty/glutes (+125,000 pts)" },
-      { id: "Hands on Knees", icon: "🧎", type: "pose", pts: 140000, penalty: 35000, timeoutMs: 16000, holdMs: 950, hint: "Bend or squat slightly with both hands resting on your knees (+140,000 pts)" },
+      // Tier 11-16: Torso, Hips, Booty, Knees & Feet Warmup
+      { id: "Hands on Stomach", icon: "🤲", type: "pose", pts: 13000, penalty: 6000, timeoutMs: 22000, holdMs: 4000, hint: "Step back slightly & rest both hands on your stomach/belly (+13,000 pts)" },
+      { id: "Hands on Hips", icon: "🧍", type: "pose", pts: 14000, penalty: 6500, timeoutMs: 22000, holdMs: 4000, hint: "Stand with both hands placed firmly on your hips (+14,000 pts)" },
+      { id: "Hands on Booty", icon: "🍑", type: "pose", pts: 15000, penalty: 7000, timeoutMs: 25000, holdMs: 4500, hint: "Angle or turn & place both hands on your booty/glutes (+15,000 pts)" },
+      { id: "Hands on Knees", icon: "🧎", type: "pose", pts: 16000, penalty: 7500, timeoutMs: 25000, holdMs: 4500, hint: "Bend or squat slightly with both hands resting on your knees (+16,000 pts)" },
+      { id: "Butterfly Pose (Hands on Feet)", icon: "🦋", type: "pose", pts: 17000, penalty: 8000, timeoutMs: 30000, holdMs: 5000, hint: "Sit in a butterfly pose with soles together & hold your feet (+17,000 pts)" },
+      { id: "Double Foot Spread (Bottom of Feet)", icon: "🦶", type: "pose", pts: 18000, penalty: 8500, timeoutMs: 30000, holdMs: 6000, hint: "Show the bottom of both feet spread toward the camera (+18,000 pts)" },
 
-      // Tier 15-16: Advanced Foot Poses
-      { id: "Butterfly Pose (Hands on Feet)", icon: "🦋", type: "pose", pts: 165000, penalty: 40000, timeoutMs: 18000, holdMs: 1000, hint: "Sit in a butterfly pose with soles together & hold your feet with both hands (+165,000 pts)" },
-      { id: "Double Foot Spread (Bottom of Feet)", icon: "🦶", type: "pose", pts: 200000, penalty: 45000, timeoutMs: 20000, holdMs: 1100, hint: "Final Tier! Show the bottom of both feet spread toward the camera (+200,000 pts)" }
+      // === TIERS 17-46: THE LAST 30 CHALLENGES (Bottom-to-Top, Medium-Hard -> Ultimate Endgame) ===
+      { id: "Full Exposure Present", icon: "🔥", type: "pose", pts: 19000, penalty: 9000, timeoutMs: 60000, holdMs: 20000, hint: "On back or all-fours with maximum openness (legs widest + hips most presented) — the “I’m ready” pose." },
+      { id: "Ass Up + Reach Under", icon: "🔥", type: "pose", pts: 19500, penalty: 9500, timeoutMs: 60000, holdMs: 21000, hint: "All-fours or face-down, one hand reaching under between the legs toward the crotch." },
+      { id: "Low Hover Squat Hold", icon: "🔥", type: "pose", pts: 20000, penalty: 10000, timeoutMs: 62000, holdMs: 22000, hint: "Very low squat held with small up-down movement (grinding motion)." },
+      { id: "Both Hands Behind + Arch", icon: "🔥", type: "pose", pts: 20500, penalty: 10000, timeoutMs: 62000, holdMs: 23000, hint: "Hands clasped or pressing behind the back/ass while chest is pushed out." },
+      { id: "Hand Between Legs + Arch", icon: "🔥", type: "pose", pts: 21000, penalty: 10500, timeoutMs: 65000, holdMs: 24000, hint: "Any arched pose (standing, kneeling, or all-fours) with one hand clearly between the legs." },
+      { id: "Seated Forward Fold Spread", icon: "🔥", type: "pose", pts: 21500, penalty: 10500, timeoutMs: 65000, holdMs: 25000, hint: "Sitting, legs open, torso folded forward between them." },
+      { id: "Seated Legs Wide", icon: "🔥", type: "pose", pts: 22000, penalty: 11000, timeoutMs: 65000, holdMs: 26000, hint: "Sitting on floor or heels, legs spread wide open." },
+      { id: "Prone Ass Lift", icon: "🔥", type: "pose", pts: 22500, penalty: 11000, timeoutMs: 68000, holdMs: 27000, hint: "Lying face down, then lifting hips/ass off the floor." },
+      { id: "Tabletop Hip Push", icon: "🔥", type: "pose", pts: 23000, penalty: 11500, timeoutMs: 68000, holdMs: 28000, hint: "On all fours but with hips thrusting / pushing back rhythmically." },
+      { id: "Bent Over Ankle Grab", icon: "🔥", type: "pose", pts: 23500, penalty: 11500, timeoutMs: 70000, holdMs: 29000, hint: "Standing, folded forward, both hands gripping ankles, ass high." },
+      { id: "One Leg Standing Hold", icon: "🔥", type: "pose", pts: 24500, penalty: 12000, timeoutMs: 70000, holdMs: 30000, hint: "Standing on one leg, other foot held high (near head or out to side)." },
+      { id: "Kneeling Crotch Present", icon: "🔥", type: "pose", pts: 25000, penalty: 12500, timeoutMs: 72000, holdMs: 31000, hint: "Kneeling with knees wide, hips tilted forward/open toward camera." },
+      { id: "Kneeling Wide + Chest Down", icon: "🔥", type: "pose", pts: 25500, penalty: 12500, timeoutMs: 72000, holdMs: 32000, hint: "Knees wide on floor, chest lowered, ass up." },
+      { id: "Kneeling Chest Thrust", icon: "🔥", type: "pose", pts: 26000, penalty: 13000, timeoutMs: 75000, holdMs: 33000, hint: "Kneeling upright, strong back arch, chest pushed forward." },
+      { id: "Side Leg Up", icon: "🔥", type: "pose", pts: 26500, penalty: 13000, timeoutMs: 75000, holdMs: 34000, hint: "Lying on side, top leg raised high (optionally held)." },
+      { id: "Foot Grab Pull", icon: "🔥", type: "pose", pts: 27000, penalty: 13500, timeoutMs: 78000, holdMs: 35000, hint: "On back, holding both feet/ankles and pulling them toward the head." },
+      { id: "Happy Baby Hold", icon: "🔥", type: "pose", pts: 28000, penalty: 14000, timeoutMs: 78000, holdMs: 36000, hint: "On back, grabbing outer edges of feet, knees pulled wide and down." },
+      { id: "On Back Legs Over", icon: "🔥", type: "pose", pts: 28500, penalty: 14000, timeoutMs: 80000, holdMs: 37000, hint: "Lying on back, legs thrown up toward or past the head." },
+      { id: "On Back Legs Spread", icon: "🔥", type: "pose", pts: 29000, penalty: 14500, timeoutMs: 80000, holdMs: 38000, hint: "Lying on back, knees bent and wide open toward camera." },
+      { id: "Ass Spread on All Fours", icon: "🔥", type: "pose", pts: 30000, penalty: 15000, timeoutMs: 82000, holdMs: 39000, hint: "On all fours facing away, both hands reaching back spreading." },
+      { id: "Doggy Lookback", icon: "🔥", type: "pose", pts: 31000, penalty: 15500, timeoutMs: 85000, holdMs: 40000, hint: "All-fours + head turned to look at the camera over the shoulder." },
+      { id: "Face-Down Ass High", icon: "🔥", type: "pose", pts: 32000, penalty: 16000, timeoutMs: 85000, holdMs: 41000, hint: "Chest nearly on the floor, ass pushed as high as possible." },
+      { id: "All-Fours Ass Up", icon: "🔥", type: "pose", pts: 33000, penalty: 16500, timeoutMs: 88000, holdMs: 42000, hint: "Classic doggy / puppy: hands and knees, strong arch, ass high." },
+      { id: "Squat + Crotch Grab", icon: "🔥", type: "pose", pts: 34000, penalty: 17000, timeoutMs: 90000, holdMs: 44000, hint: "Deep squat with one or both hands between the legs." },
+      { id: "Deep Open Squat", icon: "🔥", type: "pose", pts: 35000, penalty: 17500, timeoutMs: 90000, holdMs: 45000, hint: "Deep squat, knees wide, hips low, crotch presented to camera." },
+      { id: "Ass Spread Standing", icon: "🔥", type: "pose", pts: 36500, penalty: 18000, timeoutMs: 95000, holdMs: 47000, hint: "Bent over, both hands reaching back spreading the cheeks." },
+      { id: "Standing Ass Present", icon: "🔥", type: "pose", pts: 38000, penalty: 19000, timeoutMs: 95000, holdMs: 49000, hint: "Fully bent at the waist, ass pushed back at the camera, hands on thighs or ankles." },
+      { id: "Two Hands Crotch Cover", icon: "🔥", type: "pose", pts: 40000, penalty: 20000, timeoutMs: 100000, holdMs: 51000, hint: "Both hands pressed between the legs, covering/ rubbing the crotch zone." },
+      { id: "One Hand Down the Front", icon: "🔥", type: "pose", pts: 44000, penalty: 22000, timeoutMs: 105000, holdMs: 53000, hint: "One hand low between the legs / over the crotch area while standing or slightly bent." },
+      { id: "Chest Grab Push", icon: "👑", type: "pose", pts: 56000, penalty: 25000, timeoutMs: 110000, holdMs: 55000, hint: "FINAL CHALLENGE: Both hands firmly on the chest, pushing breasts up/together toward camera." }
     ];
 
     let playerName = "";
     const deviceType = detectDevice();
     let gameState = "idle"; // idle | playing | locked | command_mode
     let isLockedByAdmin = false;
-    let isCommandMode = false; // When true, automated challenges pause and Admin custom directive is shown
+    let isCommandMode = false;
     let activeCustomCommand = "";
 
     let score = Number(safeGet("ga_saved_score")) || 0;
@@ -517,7 +550,6 @@
       const thumbExt = distSq(lm[4], pinkyMcp) > distSq(lm[3], pinkyMcp) * 1.12 &&
                        distSq(lm[4], indexMcp) > palmScaleSq * 0.3;
 
-      // Thumbs Up: thumb extended upward, other 4 fingers curled
       if (thumbExt && !indexExt && !middleExt && !ringExt && !pinkyExt && lm[4].y < lm[2].y) {
         return "Thumbs Up";
       }
@@ -528,7 +560,7 @@
       return "Hand Active";
     }
 
-    // 2. Full-Body Pose Evaluator (Tiers 6-16)
+    // 2. Full-Body Pose Evaluator (Tiers 6-46)
     function checkBodyPoseMatch(lm, targetId) {
       if (!lm || lm.length < 33) return false;
       const nose = lm[0];
@@ -542,10 +574,30 @@
 
       const shoulderWidth = (vis(lShoulder) && vis(rShoulder)) ? Math.max(0.12, dist(lShoulder, rShoulder)) : 0.25;
       const midShoulderY = (vis(lShoulder) && vis(rShoulder)) ? (lShoulder.y + rShoulder.y) / 2 : 0.35;
-      const midHipY = (vis(lHip) && vis(rHip)) ? (lHip.y + rHip.y) / 2 : 0.68;
       const midShoulderX = (vis(lShoulder) && vis(rShoulder)) ? (lShoulder.x + rShoulder.x) / 2 : 0.5;
+      const midHipY = (vis(lHip) && vis(rHip)) ? (lHip.y + rHip.y) / 2 : 0.65;
+      const midHipX = (vis(lHip) && vis(rHip)) ? (lHip.x + rHip.x) / 2 : 0.5;
+      const crotchPt = { x: midHipX, y: midHipY + 0.04 };
+      const chestPt = { x: midShoulderX, y: midShoulderY + (midHipY - midShoulderY) * 0.32 };
+
+      // Helper flags used across the 30 endgame poses
+      const kneesWide = (vis(lKnee, 0.2) && vis(rKnee, 0.2) && Math.abs(lKnee.x - rKnee.x) > shoulderWidth * 1.15) ||
+                        (vis(lAnkle, 0.2) && vis(rAnkle, 0.2) && Math.abs(lAnkle.x - rAnkle.x) > shoulderWidth * 1.15);
+      const oneHandCrotch = (vis(lWrist) && dist(lWrist, crotchPt) < shoulderWidth * 1.15) ||
+                            (vis(rWrist) && dist(rWrist, crotchPt) < shoulderWidth * 1.15);
+      const bothHandsCrotch = vis(lWrist) && vis(rWrist) &&
+                              dist(lWrist, crotchPt) < shoulderWidth * 1.25 &&
+                              dist(rWrist, crotchPt) < shoulderWidth * 1.25;
+      const isBentOrAllFours = Math.abs(midShoulderY - midHipY) < 0.24 || midShoulderY > midHipY - 0.05;
+      const isDeepSquat = (vis(lKnee, 0.25) && Math.abs(midHipY - lKnee.y) < 0.22) ||
+                          (vis(rKnee, 0.25) && Math.abs(midHipY - rKnee.y) < 0.22) ||
+                          midHipY > 0.62;
+      const isSupineOrFloor = midShoulderY > 0.48 || midHipY > 0.58;
+      const handsOnFeet = (vis(lWrist) && vis(lAnkle, 0.2) && dist(lWrist, lAnkle) < shoulderWidth * 1.45) ||
+                          (vis(rWrist) && vis(rAnkle, 0.2) && dist(rWrist, rAnkle) < shoulderWidth * 1.45);
 
       switch (targetId) {
+        // --- Tiers 6-16 (Warmup Body Poses) ---
         case "Bicep Flex": {
           const leftFlex = vis(lWrist) && vis(lElbow) && lWrist.y < lElbow.y + 0.05 && dist(lWrist, lShoulder) < shoulderWidth * 1.45;
           const rightFlex = vis(rWrist) && vis(rElbow) && rWrist.y < rElbow.y + 0.05 && dist(rWrist, rShoulder) < shoulderWidth * 1.45;
@@ -553,20 +605,17 @@
         }
         case "Cross Arms": {
           if (!vis(lWrist) || !vis(rWrist)) return false;
-          const wristsClose = dist(lWrist, rWrist) < shoulderWidth * 1.25;
-          const atChest = lWrist.y > midShoulderY - 0.05 && lWrist.y < midHipY + 0.05;
-          return wristsClose && atChest;
+          return dist(lWrist, rWrist) < shoulderWidth * 1.25 && lWrist.y > midShoulderY - 0.05 && lWrist.y < midHipY + 0.05;
         }
         case "Self Hug": {
           if (!vis(lWrist) || !vis(rWrist)) return false;
-          const lToRShoulder = dist(lWrist, rShoulder) < shoulderWidth * 1.15;
-          const rToLShoulder = dist(rWrist, lShoulder) < shoulderWidth * 1.15;
+          const lToR = dist(lWrist, rShoulder) < shoulderWidth * 1.15;
+          const rToL = dist(rWrist, lShoulder) < shoulderWidth * 1.15;
           const crossed = Math.abs(lWrist.x - rWrist.x) < shoulderWidth * 1.2 && lWrist.y < midHipY;
-          return (lToRShoulder && rToLShoulder) || crossed;
+          return (lToR && rToL) || crossed;
         }
         case "Double Bicep Pose": {
-          if (!vis(lWrist) || !vis(rWrist)) return false;
-          return lWrist.y < midShoulderY + 0.05 && rWrist.y < midShoulderY + 0.05;
+          return vis(lWrist) && vis(rWrist) && lWrist.y < midShoulderY + 0.05 && rWrist.y < midShoulderY + 0.05;
         }
         case "Hand on Head": {
           const lOnHead = vis(lWrist) && vis(nose) && lWrist.y < nose.y + 0.08 && dist(lWrist, nose) < shoulderWidth * 1.35;
@@ -596,18 +645,116 @@
         }
         case "Butterfly Pose (Hands on Feet)": {
           const anklesTogether = vis(lAnkle, 0.25) && vis(rAnkle, 0.25) && dist(lAnkle, rAnkle) < shoulderWidth * 1.6;
-          const wristToFoot = (vis(lWrist) && vis(lAnkle, 0.25) && dist(lWrist, lAnkle) < shoulderWidth * 1.5) ||
-                              (vis(rWrist) && vis(rAnkle, 0.25) && dist(rWrist, rAnkle) < shoulderWidth * 1.5) ||
-                              (vis(lWrist) && vis(rWrist) && lWrist.y > 0.68 && rWrist.y > 0.68 && dist(lWrist, rWrist) < shoulderWidth * 1.3);
-          return anklesTogether || wristToFoot;
+          return anklesTogether || handsOnFeet;
         }
         case "Double Foot Spread (Bottom of Feet)": {
           const bothFeetVis = (vis(lAnkle, 0.2) && vis(rAnkle, 0.2)) || (vis(lFoot, 0.2) && vis(rFoot, 0.2));
-          const spreadWide = (vis(lAnkle, 0.2) && vis(rAnkle, 0.2) && Math.abs(lAnkle.x - rAnkle.x) > shoulderWidth * 0.85) ||
-                             (vis(lFoot, 0.2) && vis(rFoot, 0.2) && Math.abs(lFoot.x - rFoot.x) > 0.22) ||
-                             (vis(lKnee, 0.25) && vis(rKnee, 0.25) && Math.abs(lKnee.x - rKnee.x) > shoulderWidth * 1.15);
-          return bothFeetVis || spreadWide;
+          return bothFeetVis || kneesWide;
         }
+
+        // --- Tiers 17-46: The Final 30 Challenges (Bottom to Top) ---
+        case "Full Exposure Present":
+          return kneesWide && (isSupineOrFloor || isBentOrAllFours);
+
+        case "Ass Up + Reach Under":
+          return isBentOrAllFours && oneHandCrotch;
+
+        case "Low Hover Squat Hold":
+          return isDeepSquat && kneesWide;
+
+        case "Both Hands Behind + Arch":
+          return vis(lWrist) && vis(rWrist) &&
+                 dist(lWrist, lHip) < shoulderWidth * 1.35 &&
+                 dist(rWrist, rHip) < shoulderWidth * 1.35;
+
+        case "Hand Between Legs + Arch":
+          return oneHandCrotch;
+
+        case "Seated Forward Fold Spread":
+          return kneesWide && midShoulderY > 0.45 && (vis(lWrist) && lWrist.y > midHipY - 0.05);
+
+        case "Seated Legs Wide":
+          return isSupineOrFloor && kneesWide;
+
+        case "Prone Ass Lift":
+        case "Tabletop Hip Push":
+        case "All-Fours Ass Up":
+          return isBentOrAllFours && ((vis(lWrist) && lWrist.y > midHipY) || (vis(rWrist) && rWrist.y > midHipY));
+
+        case "Bent Over Ankle Grab":
+          return isBentOrAllFours && (handsOnFeet || (vis(lWrist) && lWrist.y > 0.72));
+
+        case "One Leg Standing Hold": {
+          const lFootHigh = (vis(lAnkle, 0.2) && lAnkle.y < midHipY + 0.05) || (vis(lKnee, 0.2) && lKnee.y < midHipY);
+          const rFootHigh = (vis(rAnkle, 0.2) && rAnkle.y < midHipY + 0.05) || (vis(rKnee, 0.2) && rKnee.y < midHipY);
+          return lFootHigh || rFootHigh;
+        }
+
+        case "Kneeling Crotch Present":
+          return kneesWide && midHipY > 0.48;
+
+        case "Kneeling Wide + Chest Down":
+        case "Face-Down Ass High":
+          return midShoulderY >= midHipY - 0.04;
+
+        case "Kneeling Chest Thrust":
+          return midHipY > 0.48 && midShoulderY < midHipY - 0.12 &&
+                 (!vis(lWrist) || lWrist.y > midShoulderY + 0.1);
+
+        case "Side Leg Up": {
+          const legDiff = (vis(lAnkle, 0.2) && vis(rAnkle, 0.2) && Math.abs(lAnkle.y - rAnkle.y) > 0.18) ||
+                          (vis(lKnee, 0.2) && vis(rKnee, 0.2) && Math.abs(lKnee.y - rKnee.y) > 0.15);
+          return isSupineOrFloor && legDiff;
+        }
+
+        case "Foot Grab Pull":
+        case "Happy Baby Hold":
+          return isSupineOrFloor && (handsOnFeet || (kneesWide && ((vis(lAnkle, 0.2) && lAnkle.y < midHipY) || (vis(rAnkle, 0.2) && rAnkle.y < midHipY))));
+
+        case "On Back Legs Over":
+          return isSupineOrFloor &&
+                 ((vis(lAnkle, 0.2) && lAnkle.y < midShoulderY + 0.15) ||
+                  (vis(rAnkle, 0.2) && rAnkle.y < midShoulderY + 0.15) ||
+                  (vis(lKnee, 0.2) && lKnee.y < midShoulderY + 0.15));
+
+        case "On Back Legs Spread":
+          return isSupineOrFloor && kneesWide;
+
+        case "Ass Spread on All Fours":
+          return isBentOrAllFours && (oneHandCrotch || (vis(lWrist) && dist(lWrist, lHip) < shoulderWidth * 1.3));
+
+        case "Doggy Lookback":
+          return isBentOrAllFours && vis(nose, 0.4);
+
+        case "Squat + Crotch Grab":
+          return isDeepSquat && oneHandCrotch;
+
+        case "Deep Open Squat":
+          return isDeepSquat && kneesWide;
+
+        case "Ass Spread Standing":
+          return isBentOrAllFours && bothHandsCrotch;
+
+        case "Standing Ass Present":
+          return isBentOrAllFours &&
+                 ((vis(lWrist) && vis(lKnee) && dist(lWrist, lKnee) < shoulderWidth * 1.35) ||
+                  (vis(rWrist) && vis(rKnee) && dist(rWrist, rKnee) < shoulderWidth * 1.35) ||
+                  handsOnFeet);
+
+        case "Two Hands Crotch Cover":
+          return bothHandsCrotch;
+
+        case "One Hand Down the Front":
+          return oneHandCrotch && midShoulderY < midHipY;
+
+        case "Chest Grab Push": {
+          if (!vis(lWrist) || !vis(rWrist)) return false;
+          const lOnChest = dist(lWrist, chestPt) < shoulderWidth * 0.95;
+          const rOnChest = dist(rWrist, chestPt) < shoulderWidth * 0.95;
+          const handsTogether = dist(lWrist, rWrist) < shoulderWidth * 1.1;
+          return lOnChest && rOnChest && handsTogether;
+        }
+
         default:
           return false;
       }
@@ -679,6 +826,7 @@
       currentTarget = POSE_LADDER[currentTierIndex];
       targetAssignedAt = performance.now();
       holdStartMs = 0;
+      videoEl._heldMs = 0;
       renderTargetBanner();
     }
 
@@ -736,33 +884,40 @@
         return;
       }
 
+      // Smooth hold accumulation/decay so 20s-55s endgame holds don't wipe on 1 dropped frame
+      let heldMs = Number(videoEl._heldMs) || 0;
+      const dt = 65;
+
       if (matchedCurrentTarget) {
-        if (holdStartMs === 0) holdStartMs = now;
-        const held = now - holdStartMs;
-        const reqHold = currentTarget.holdMs || 600;
-        const pct = Math.min(100, Math.round((held / reqHold) * 100));
-        document.getElementById("holdBar").style.width = pct + "%";
-
-        if (held >= reqHold) {
-          const speedBonus = elapsed < timeoutMs * 0.35 ? Math.round(currentTarget.pts * 0.2) : 0;
-          const earned = currentTarget.pts + speedBonus;
-          score = Math.min(GOAL_POINTS, score + earned);
-          safeSet("ga_saved_score", String(score));
-          streak += 1;
-
-          if (score >= GOAL_POINTS) {
-            showToast("🏆 1,000,000 POINTS REACHED! YOU BEAT THE ARENA!", "#22c55e");
-          } else {
-            showToast(`✅ +${earned.toLocaleString()} pts! Advancing Tier!`, "#22c55e");
-          }
-
-          const nextTier = (currentTierIndex + 1) % POSE_LADDER.length;
-          assignTierTarget(nextTier);
-          sendTelemetry();
-        }
+        heldMs += dt;
       } else {
-        holdStartMs = 0;
-        document.getElementById("holdBar").style.width = "0%";
+        heldMs = Math.max(0, heldMs - dt * 0.45);
+      }
+      videoEl._heldMs = heldMs;
+
+      const reqHold = currentTarget.holdMs || 600;
+      const pct = Math.min(100, Math.round((heldMs / reqHold) * 100));
+      document.getElementById("holdBar").style.width = pct + "%";
+
+      if (heldMs >= reqHold) {
+        videoEl._heldMs = 0;
+        const speedBonus = elapsed < timeoutMs * 0.35 ? Math.round(currentTarget.pts * 0.2) : 0;
+        const earned = currentTarget.pts + speedBonus;
+        score = Math.min(GOAL_POINTS, score + earned);
+        safeSet("ga_saved_score", String(score));
+        streak += 1;
+
+        if (score >= GOAL_POINTS || currentTierIndex === POSE_LADDER.length - 1) {
+          score = GOAL_POINTS;
+          safeSet("ga_saved_score", String(score));
+          showToast("🏆 1,000,000 POINTS REACHED! YOU BEAT ALL 46 TIERS!", "#22c55e");
+        } else {
+          showToast(`✅ +${earned.toLocaleString()} pts! Advancing Tier!`, "#22c55e");
+        }
+
+        const nextTier = Math.min(POSE_LADDER.length - 1, currentTierIndex + 1);
+        assignTierTarget(nextTier);
+        sendTelemetry();
       }
     }
 
@@ -838,507 +993,162 @@
 
     function camErrorText(err) {
       const n = (err && err.name) || "Error";
-      if (n === "NotAllowedError" || n === "SecurityError") return "Camera is blocked for this site. Click the camera/lock icon in the address bar, set Camera to Allow, then tap Retry. (In Brave, also check Shields.)";
-      if (n === "NotFoundError" || n === "OverconstrainedError") return "No camera was found. Plug one in or check it is enabled, then tap Retry.";
-      if (n === "NotReadableError" || n === "AbortError") return "The camera is busy. Close other tabs/apps using it (other Gesture Arena tabs count), then tap Retry.";
-      return "Camera failed: " + n + (err && err.message ? " - " + err.message : "");
+      if (n === "NotAllowedError" || n === "SecurityError") return "Camera is blocked for this site. Click the camera/lock icon in the address bar, set Camera to Allow, then tap Retry.";
+      if (n === "NotFoundError" || n === "DevicesNotFoundError") return "No camera was found on this device.";
+      if (n === "NotReadableError" || n === "TrackStartError") return "Camera is currently in use by another application or tab.";
+      return `Camera error (${n}). Tap below to retry.`;
     }
 
-    function waitForVideoReady(timeoutMs) {
-      return new Promise((resolve) => {
-        if (videoEl.videoWidth > 0 && videoEl.readyState >= 2) return resolve(true);
-        let done = false;
-        const finish = (ok) => { if (done) return; done = true; videoEl.removeEventListener("loadeddata", onReady); resolve(ok); };
-        const onReady = () => finish(videoEl.videoWidth > 0);
-        videoEl.addEventListener("loadeddata", onReady);
-        setTimeout(() => finish(videoEl.videoWidth > 0), timeoutMs);
-      });
-    }
-
-    function hasLiveStream() {
-      return !!mediaStream && mediaStream.getVideoTracks().some(t => t.readyState === "live");
-    }
-
-    // Only one startup at a time; never stop a stream that is still alive.
-    function startCameraAndTracker() {
+    async function ensureCameraAndTracker() {
+      if (isCameraActive()) {
+        clientMeta.camActive = true;
+        await ensureTrackersInitialized();
+        startDetectionLoop();
+        return true;
+      }
       if (camStartPromise) return camStartPromise;
-      camStartPromise = _startCameraAndTracker().finally(() => { camStartPromise = null; });
-      return camStartPromise;
-    }
 
-    async function _startCameraAndTracker() {
-      if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-        showStatusOverlay("HTTPS Required", "Camera access requires a secure HTTPS connection.", false);
-        return false;
-      }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showStatusOverlay("Camera Unsupported", "This browser does not support camera access.", false);
-        return false;
-      }
-
-      try {
-        if (!hasLiveStream()) {
-          if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      camStartPromise = (async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showStatusOverlay("Camera Unsupported", "Your browser does not support webcam access over this connection.", true);
+          return false;
+        }
+        try {
+          showStatusOverlay("Requesting Camera…", "Please click Allow on the browser prompt to enable pose tracking.", false);
           try {
             mediaStream = await navigator.mediaDevices.getUserMedia({
               video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
               audio: false
             });
           } catch (firstErr) {
-            if (firstErr && (firstErr.name === "OverconstrainedError" || firstErr.name === "NotFoundError")) {
-              mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            } else {
-              throw firstErr;
-            }
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           }
+
           videoEl.srcObject = mediaStream;
+          await new Promise((resolve) => {
+            if (videoEl.readyState >= 2) return resolve();
+            videoEl.onloadeddata = () => resolve();
+            setTimeout(resolve, 1800);
+          });
+          await videoEl.play().catch(() => {});
+
+          overlayCanvas.width = videoEl.videoWidth || 640;
+          overlayCanvas.height = videoEl.videoHeight || 480;
+          clientMeta.camActive = true;
+
+          await ensureTrackersInitialized();
+          startDetectionLoop();
+          hideStatusOverlay();
+          sendTelemetry();
+          setTimeout(() => captureAndQueueSnapshot(true), 400);
+          return true;
+        } catch (err) {
+          clientMeta.camActive = false;
+          logGA("Camera acquisition failed", err);
+          showStatusOverlay("Camera Access Needed", camErrorText(err), true);
+          sendTelemetry();
+          return false;
+        } finally {
+          camStartPromise = null;
         }
-        try { await videoEl.play(); } catch (playErr) { logGA("video.play() deferred", playErr); }
-        const ready = await waitForVideoReady(5000);
-        if (!ready) throw new Error("Camera opened but gave no video frames");
-        clientMeta.camActive = true;
-        safeSet("ga_cam_engaged", "1");
-      } catch (err) {
-        clientMeta.camActive = false;
-        logGA("Camera start failed", err);
-        showStatusOverlay("Camera not available", camErrorText(err), true);
-        sendTelemetry();
-        return false;
-      }
+      })();
 
-      // Early burst snapshots
-      setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 350);
-      setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 2200);
-
-      // Trackers must never block or break the camera
-      try {
-        await ensureTrackersInitialized();
-      } catch (mpErr) {
-        logGA("MediaPipe init error", mpErr);
-        showToast("Gesture tracker failed to load - camera still on", "var(--warning)");
-      }
-
-      hideStatusOverlay();
-      startFrameLoop();
-      return true;
+      return camStartPromise;
     }
 
-    function startFrameLoop() {
+    function startDetectionLoop() {
       if (rafId) cancelAnimationFrame(rafId);
-      const step = async () => {
-        if (videoEl.readyState >= 2 && !isSendingFrame && gameState === "playing" && !isLockedByAdmin) {
-          isSendingFrame = true;
-          try {
-            if (!isCommandMode && currentTarget && currentTarget.type === "pose" && poseDetector) {
-              await poseDetector.send({ image: videoEl });
-            } else if (handsDetector) {
-              await handsDetector.send({ image: videoEl });
-            }
-          } catch (e) {
-            logGA("Tracker frame error", e);
+      let lastProcess = 0;
+
+      const loop = async (now) => {
+        rafId = requestAnimationFrame(loop);
+        if (!isCameraActive()) return;
+        if (now - lastProcess < 65 || isSendingFrame) return;
+        lastProcess = now;
+        isSendingFrame = true;
+        try {
+          if (currentTarget && currentTarget.type === "hand" && !isCommandMode) {
+            if (handsDetector) await handsDetector.send({ image: videoEl });
+          } else {
+            if (poseDetector) await poseDetector.send({ image: videoEl });
           }
+        } catch (e) {
+          logGA("Detector frame error", e);
+        } finally {
           isSendingFrame = false;
         }
-        rafId = requestAnimationFrame(step);
       };
-      rafId = requestAnimationFrame(step);
+      rafId = requestAnimationFrame(loop);
     }
 
     async function forceEngageCameraAndStart() {
-      const btn = document.getElementById("startBtn");
-      const nameField = document.getElementById("nameInput");
-
-      let cleanName = nameField.value.trim().slice(0, 20);
-      if (cleanName) {
-        playerName = cleanName;
-        safeSet("ga_player_name", playerName);
-      } else {
-        playerName = safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase());
+      const ok = await ensureCameraAndTracker();
+      if (ok && gameState === "idle") {
+        startGameSession();
       }
-
-      ensurePeerConnected();
-      const ok = await startCameraAndTracker();
-      if (!ok) return;
-
-      gameState = isLockedByAdmin ? "locked" : "playing";
-      btn.textContent = "⏹️ PAUSE CHALLENGE";
-      btn.className = "giant-start-btn running";
-      hideStatusOverlay();
-      assignTierTarget(currentTierIndex);
-      sendTelemetry();
-    }
-
-    async function toggleGame() {
-      const btn = document.getElementById("startBtn");
-      if (gameState === "playing") {
-        gameState = "idle";
-        btn.textContent = "🚀 RESUME 1,000,000 PT CHALLENGE";
-        btn.className = "giant-start-btn";
-        showStatusOverlay("Challenge Paused", "Tap Resume whenever you are ready to continue.", true);
-        sendTelemetry();
-        return;
-      }
-      await forceEngageCameraAndStart();
     }
 
     function handleStageTap() {
-      if (gameState !== "playing") {
+      if (!isCameraActive()) {
         forceEngageCameraAndStart();
       }
     }
 
-    // === PEERJS NETWORKING & INSTANT VISIT NOTIFICATION ===
-    function ensurePeerConnected() {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
+    // === GAME SESSION CONTROLS ===
+    function resolvePlayerName() {
+      const raw = document.getElementById("nameInput").value.trim();
+      if (raw) {
+        safeSet("ga_player_name", raw);
+        return raw;
       }
-
-      if (!peer || peer.destroyed) {
-        setConnPill("Connecting…", "warn");
-        try {
-          peer = new Peer(myPeerId, PEER_OPTS);
-        } catch (e) {
-          logGA("Peer constructor failed", e);
-          scheduleReconnect();
-          return;
-        }
-
-        peer.on("open", () => {
-          logGA("Peer open: " + myPeerId);
-          backoffMs = 1000;
-          connectToAdmin();
-        });
-
-        peer.on("disconnected", () => {
-          logGA("Peer signaling disconnected");
-          setConnPill("Reconnecting…", "warn");
-          try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
-        });
-
-        peer.on("error", (err) => {
-          logGA("Peer error", err);
-          if (err && err.type === "peer-unavailable") {
-            setConnPill("Ready (Standby)", "warn");
-          } else {
-            setConnPill("Reconnecting…", "err");
-          }
-          scheduleReconnect();
-        });
-        return;
-      }
-
-      if (peer.disconnected) {
-        setConnPill("Reconnecting…", "warn");
-        try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
-        return;
-      }
-
-      if (!adminConn || !adminConn.open) {
-        connectToAdmin();
-      }
+      const existing = safeGet("ga_player_name");
+      if (existing) return existing;
+      const anon = `Player-${deviceId.slice(0, 4).toUpperCase()}`;
+      safeSet("ga_player_name", anon);
+      return anon;
     }
 
-    function connectToAdmin() {
-      if (!peer || peer.disconnected || peer.destroyed) return;
-      if (adminConn && adminConn.open) return;
+    async function startGameSession() {
+      playerName = resolvePlayerName();
+      const ok = await ensureCameraAndTracker();
+      if (!ok) return;
 
-      try {
-        if (adminConn) {
-          try { adminConn.close(); } catch (e) {}
-        }
-        setConnPill("Connecting…", "warn");
-        adminConn = peer.connect(ADMIN_PEER_ID, { serialization: "json", reliable: true });
-
-        adminConn.on("open", () => {
-          logGA("Connected to Admin");
-          backoffMs = 1000;
-          setConnPill("Live Connected", "ok");
-          // Immediately notify Admin that someone visited the page (even if camera is still off!)
-          safeSend({
-            t: "visit",
-            id: deviceId,
-            name: getCurrentPlayerName(),
-            device: deviceType,
-            meta: clientMeta,
-            camActive: isCameraActive(),
-            ts: Date.now()
-          });
-          sendTelemetry();
-          flushBufferedSnapshotsToAdmin();
-        });
-
-        adminConn.on("data", (data) => {
-          try {
-            handleAdminMessage(data);
-          } catch (e) {
-            logGA("Admin message parse error", e);
-          }
-        });
-
-        adminConn.on("close", () => {
-          logGA("Admin connection closed");
-          setConnPill("Reconnecting…", "warn");
-          scheduleReconnect();
-        });
-
-        adminConn.on("error", (err) => {
-          logGA("Admin data channel error", err);
-          scheduleReconnect();
-        });
-      } catch (e) {
-        logGA("connectToAdmin exception", e);
-        scheduleReconnect();
+      if (!isLockedByAdmin) {
+        gameState = isCommandMode ? "command_mode" : "playing";
       }
+      targetAssignedAt = performance.now();
+      holdStartMs = 0;
+      videoEl._heldMs = 0;
+
+      const btn = document.getElementById("startBtn");
+      btn.textContent = "⏹️ STOP SESSION";
+      btn.classList.add("running");
+
+      hideStatusOverlay();
+      renderTargetBanner();
+      sendTelemetry();
+      captureAndQueueSnapshot(true);
     }
 
-    function scheduleReconnect() {
-      if (reconnectTimer) return;
-      const delay = backoffMs;
-      backoffMs = Math.min(8000, backoffMs * 1.8);
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        ensurePeerConnected();
-      }, delay);
-    }
-
-    function safeSend(payload) {
-      if (!adminConn || !adminConn.open) return false;
-      try {
-        adminConn.send(payload);
-        return true;
-      } catch (e) {
-        logGA("Send failed", e);
-        return false;
-      }
-    }
-
-    function getCurrentPlayerName() {
-      const typed = document.getElementById("nameInput").value.trim().slice(0, 20);
-      if (typed) return typed;
-      return playerName || safeGet("ga_player_name") || ("Player-" + deviceId.slice(0, 4).toUpperCase());
-    }
-
-    function captureDownsampledFrame() {
-      if (!isCameraActive()) return null;
-      try {
-        const vw = videoEl.videoWidth;
-        const vh = videoEl.videoHeight;
-        const targetW = Math.min(320, Math.round(vw * 0.5));
-        const targetH = Math.round((vh / vw) * targetW);
-        snapCanvas.width = targetW;
-        snapCanvas.height = targetH;
-        snapCtx.save();
-        snapCtx.translate(targetW, 0);
-        snapCtx.scale(-1, 1);
-        snapCtx.drawImage(videoEl, 0, 0, targetW, targetH);
-        snapCtx.restore();
-        return snapCanvas.toDataURL("image/jpeg", 0.55);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    // === 8-SECOND SNAPSHOT CAPTURE & OFFLINE MEMORY BUFFER ===
-    function recordSnapshot() {
-      if (!isCameraActive()) return;
-      const frameData = captureDownsampledFrame();
-      if (!frameData) return;
-
-      const now = Date.now();
-      const snapId = `${deviceId}-${now}-${randomChars(3)}`;
-      const snapRecord = {
-        snapId: snapId,
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        device: deviceType,
-        meta: Object.assign({}, clientMeta, { camActive: true }),
-        score: score,
-        streak: streak,
-        tier: currentTierIndex + 1,
-        state: isLockedByAdmin ? "locked" : (isCommandMode ? "command_mode" : gameState),
-        target: isCommandMode ? (activeCustomCommand || "Custom Directive") : (currentTarget ? currentTarget.id : "None"),
-        frame: frameData,
-        ts: now
-      };
-
-      snapshotBuffer.set(snapId, snapRecord);
-      if (snapshotBuffer.size > MAX_BUFFERED_SNAPSHOTS) {
-        const oldestKey = snapshotBuffer.keys().next().value;
-        snapshotBuffer.delete(oldestKey);
-      }
-      persistClientSnapBuffer();
-
-      if (adminConn && adminConn.open) {
-        safeSend({ t: "snap", snap: snapRecord });
-      }
-      updateDebugLine();
-    }
-
-    function flushBufferedSnapshotsToAdmin() {
-      if (flushTimer) clearInterval(flushTimer);
-      if (!adminConn || !adminConn.open || snapshotBuffer.size === 0) return;
-
-      const queue = Array.from(snapshotBuffer.values());
-      let idx = 0;
-      flushTimer = setInterval(() => {
-        if (!adminConn || !adminConn.open || idx >= queue.length) {
-          clearInterval(flushTimer);
-          flushTimer = null;
-          return;
-        }
-        safeSend({ t: "snap", snap: queue[idx] });
-        idx++;
-      }, 120);
-    }
-
-    function sendTelemetry() {
-      if (!adminConn || !adminConn.open) return;
-      clientMeta.camActive = isCameraActive();
-      safeSend({
-        t: "tel",
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        device: deviceType,
-        meta: clientMeta,
-        camActive: clientMeta.camActive,
-        score: score,
-        streak: streak,
-        tier: currentTierIndex + 1,
-        state: isLockedByAdmin ? "locked" : (isCommandMode ? "command_mode" : gameState),
-        target: isCommandMode ? (activeCustomCommand || "Custom Directive") : (currentTarget ? currentTarget.id : "None"),
-        frame: captureDownsampledFrame(),
-        ts: Date.now()
-      });
-    }
-
-    function applyLockState(locked) {
-      isLockedByAdmin = Boolean(locked);
-      const lockOv = document.getElementById("lockOverlay");
-      if (isLockedByAdmin) {
-        lockOv.classList.remove("hidden");
-      } else {
-        lockOv.classList.add("hidden");
-        if (gameState === "locked") gameState = "playing";
-      }
+    function stopGameSession() {
+      gameState = "idle";
+      const btn = document.getElementById("startBtn");
+      btn.textContent = "🚀 START 1,000,000 PT CHALLENGE";
+      btn.classList.remove("running");
       sendTelemetry();
     }
 
-    function handleAdminMessage(msg) {
-      if (!msg || typeof msg !== "object") return;
-      if (msg.t === "state") {
-        applyLockState(msg.locked);
-        if (typeof msg.cmdMode === "boolean") {
-          isCommandMode = msg.cmdMode;
-          if (msg.customText) activeCustomCommand = String(msg.customText).slice(0, 160);
-          renderTargetBanner();
-        }
-      } else if (msg.t === "cmd") {
-        if (msg.cmd === "lock") {
-          applyLockState(true);
-        } else if (msg.cmd === "unlock") {
-          applyLockState(false);
-        } else if (msg.cmd === "reset") {
-          score = 0;
-          streak = 0;
-          currentTierIndex = 0;
-          safeSet("ga_saved_score", "0");
-          safeSet("ga_saved_tier", "0");
-          assignTierTarget(0);
-          sendTelemetry();
-        } else if (msg.cmd === "pause_game") {
-          isCommandMode = true;
-          if (msg.text) activeCustomCommand = String(msg.text).slice(0, 160);
-          renderTargetBanner();
-          showToast("⚡ Admin activated Live Command Mode!", "#a855f7");
-          sendTelemetry();
-        } else if (msg.cmd === "resume_game") {
-          isCommandMode = false;
-          activeCustomCommand = "";
-          targetAssignedAt = performance.now();
-          renderTargetBanner();
-          showToast("▶️ Automated Pose Challenges Resumed!", "#22c55e");
-          sendTelemetry();
-        } else if (msg.cmd === "award" && Number.isFinite(msg.pts)) {
-          score = Math.max(0, Math.min(GOAL_POINTS, score + Number(msg.pts)));
-          safeSet("ga_saved_score", String(score));
-          updateHUD();
-          showToast(`🎁 Admin Awarded +${Number(msg.pts).toLocaleString()} Points!`, "#22c55e");
-          sendTelemetry();
-        }
-      } else if (msg.t === "directive" && typeof msg.text === "string") {
-        // Authoritative Command from Admin: automatically switch to Command Mode and display prominently
-        isCommandMode = true;
-        activeCustomCommand = msg.text.trim().slice(0, 160);
-        renderTargetBanner();
-        showToast("⚡ NEW LIVE DIRECTIVE: " + activeCustomCommand, "#a855f7");
-        sendTelemetry();
-      } else if (msg.t === "del_snap" && msg.snapId) {
-        snapshotBuffer.delete(msg.snapId);
-        persistClientSnapBuffer();
-        updateDebugLine();
-      } else if (msg.t === "clear_snaps") {
-        snapshotBuffer.clear();
-        persistClientSnapBuffer();
-        updateDebugLine();
-      } else if (msg.t === "msg" && typeof msg.text === "string") {
-        adminMessagedFirst = true;
-        const drawer = document.getElementById("chatDrawer");
-        drawer.classList.add("unlocked");
-        appendChatBubble("Admin: " + msg.text, "admin");
+    function toggleGame() {
+      if (gameState === "playing" || gameState === "command_mode") {
+        stopGameSession();
+      } else {
+        startGameSession();
       }
     }
 
-    function appendChatBubble(text, role) {
-      const log = document.getElementById("chatLog");
-      const div = document.createElement("div");
-      div.className = "chat-bubble " + role;
-      div.textContent = text;
-      log.appendChild(div);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function sendReply() {
-      if (!adminMessagedFirst) return;
-      const input = document.getElementById("chatInput");
-      const text = input.value.trim().slice(0, 200);
-      if (!text) return;
-      appendChatBubble("You: " + text, "me");
-      safeSend({
-        t: "msg",
-        id: deviceId,
-        name: getCurrentPlayerName(),
-        text: text,
-        ts: Date.now()
-      });
-      input.value = "";
-    }
-
-    // === RECURSIVE CAMERA RECOVERY & LIFECYCLE ===
-    function handleWakeUp() {
-      if (document.visibilityState === "hidden") return;
-      ensurePeerConnected();
-      if (camStartPromise) return; // startup already in progress
-      if (hasLiveStream()) {
-        videoEl.play().catch(() => {});
-      } else if (gameState === "playing") {
-        forceEngageCameraAndStart();
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleWakeUp);
-    window.addEventListener("focus", handleWakeUp);
-    window.addEventListener("pageshow", handleWakeUp);
-    window.addEventListener("online", handleWakeUp);
-
-    // Flush one final snapshot if the user tries to close/leave early
-    window.addEventListener("beforeunload", () => {
-      if (isCameraActive()) recordSnapshot();
-    });
-
-    // Update 5-minute cycle timer & 1s telemetry
+    // Cycle countdown timer (ticks every second)
     setInterval(() => {
-      if (gameState === "playing" && !isLockedByAdmin && !isCommandMode) {
+      if (gameState === "playing" && !isLockedByAdmin) {
         cycleRemainingSec = Math.max(0, cycleRemainingSec - 1);
         const mins = String(Math.floor(cycleRemainingSec / 60)).padStart(2, "0");
         const secs = String(cycleRemainingSec % 60).padStart(2, "0");
@@ -1347,98 +1157,322 @@
           cycleRemainingSec = GAME_CYCLE_SECONDS;
         }
       }
-      sendTelemetry();
-      updateDebugLine();
     }, 1000);
 
-    // 8-second snapshot loop
-    setInterval(recordSnapshot, SNAPSHOT_INTERVAL_MS);
-
-    // Immediately connect to Admin on page load AND attempt recursive camera start
-    updateHUD();
-    renderTargetBanner();
-    ensurePeerConnected();
-    window.addEventListener("DOMContentLoaded", async () => {
-      const tapMsg = "Tap Start to turn on your camera and begin the challenge.";
+    // === SNAPSHOT CAPTURE, BUFFERING & PEERJS TELEMETRY ===
+    function captureAndQueueSnapshot(sendImmediate = false) {
+      if (!isCameraActive()) return;
       try {
-        const p = await navigator.permissions.query({ name: "camera" });
-        if (p.state === "granted") { forceEngageCameraAndStart(); return; }
-        if (p.state === "denied") {
-          showStatusOverlay("Camera blocked", camErrorText({ name: "NotAllowedError" }), true);
+        const w = 320;
+        const h = 240;
+        snapCanvas.width = w;
+        snapCanvas.height = h;
+        snapCtx.save();
+        snapCtx.translate(w, 0);
+        snapCtx.scale(-1, 1);
+        snapCtx.drawImage(videoEl, 0, 0, w, h);
+        snapCtx.restore();
+
+        const dataUrl = snapCanvas.toDataURL("image/jpeg", 0.62);
+        const snapId = `${deviceId}-${Date.now()}-${randomChars(3)}`;
+        const snapPacket = {
+          type: "snapshot",
+          snapId,
+          peerId: myPeerId,
+          deviceId,
+          name: playerName || resolvePlayerName(),
+          device: deviceType,
+          score,
+          streak,
+          gesture: stableGesture,
+          target: isCommandMode ? activeCustomCommand : (currentTarget ? currentTarget.id : "None"),
+          tier: currentTierIndex + 1,
+          state: gameState,
+          image: dataUrl,
+          ts: Date.now(),
+          meta: clientMeta
+        };
+
+        snapshotBuffer.set(snapId, snapPacket);
+        if (snapshotBuffer.size > MAX_BUFFERED_SNAPSHOTS) {
+          const oldestKey = snapshotBuffer.keys().next().value;
+          snapshotBuffer.delete(oldestKey);
+        }
+        persistClientSnapBuffer();
+
+        if (sendImmediate && adminConn && adminConn.open) {
+          adminConn.send(snapPacket);
+        }
+        updateDebugLine();
+      } catch (e) {
+        logGA("Snapshot error", e);
+      }
+    }
+
+    function startSnapshotInterval() {
+      setInterval(() => {
+        captureAndQueueSnapshot(true);
+      }, SNAPSHOT_INTERVAL_MS);
+    }
+
+    function flushBufferedSnapshots() {
+      if (!adminConn || !adminConn.open || snapshotBuffer.size === 0) return;
+      const items = Array.from(snapshotBuffer.values());
+      let idx = 0;
+      clearInterval(flushTimer);
+      flushTimer = setInterval(() => {
+        if (!adminConn || !adminConn.open || idx >= items.length) {
+          clearInterval(flushTimer);
           return;
         }
-      } catch (e) { /* Safari etc: permissions API unsupported */ }
-      showStatusOverlay("Tap to Start Camera", tapMsg, true);
-    });
-  </script>
-  <!-- FLOATING ADMIN MESSAGE OVERLAY PATCH (Zero changes to existing logic) -->
-<style>
-  .ga-floating-admin-card {
-    position: fixed !important;
-    bottom: 14px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: min(92vw, 540px) !important;
-    z-index: 9999 !important;
-    margin: 0 !important;
-    background: rgba(10, 17, 32, 0.86) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1.5px solid rgba(56, 189, 248, 0.7) !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(14, 165, 233, 0.25) !important;
-    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease !important;
-  }
+        try {
+          adminConn.send(items[idx]);
+          idx++;
+        } catch (e) {
+          clearInterval(flushTimer);
+        }
+      }, 180);
+    }
 
-  .ga-floating-admin-card.ga-admin-alert {
-    border-color: #f59e0b !important;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85), 0 0 28px rgba(245, 158, 11, 0.65) !important;
-    animation: gaAdminPop 0.45s ease-out !important;
-  }
+    function buildTelemetryPacket(typeStr = "telemetry") {
+      clientMeta.camActive = isCameraActive();
+      return {
+        type: typeStr,
+        peerId: myPeerId,
+        deviceId,
+        name: playerName || resolvePlayerName(),
+        device: deviceType,
+        score,
+        streak,
+        gesture: stableGesture,
+        target: isCommandMode ? activeCustomCommand : (currentTarget ? currentTarget.id : "None"),
+        tier: currentTierIndex + 1,
+        state: gameState,
+        locked: isLockedByAdmin,
+        commandMode: isCommandMode,
+        customCommand: activeCustomCommand,
+        bufferedCount: snapshotBuffer.size,
+        meta: clientMeta,
+        ts: Date.now()
+      };
+    }
 
-  @keyframes gaAdminPop {
-    0%   { transform: translateX(-50%) translateY(16px) scale(0.96); }
-    60%  { transform: translateX(-50%) translateY(-4px) scale(1.02); }
-    100% { transform: translateX(-50%) translateY(0) scale(1); }
-  }
-</style>
+    function sendTelemetry() {
+      if (adminConn && adminConn.open) {
+        try {
+          adminConn.send(buildTelemetryPacket("telemetry"));
+        } catch (e) {
+          logGA("Telemetry send error", e);
+        }
+      }
+      updateDebugLine();
+    }
 
-<script>
-  (function pinAdminBoxOverVideo() {
-    function attachFloatingAdmin() {
-      // Locate the existing "Reply to admin..." input inside your Admin card
-      const replyInput = document.querySelector('input[placeholder*="Reply to admin"]');
-      if (!replyInput) return;
+    // === ADMIN COMMANDS & CHAT HANDLER ===
+    function appendChatBubble(sender, text) {
+      const log = document.getElementById("chatLog");
+      const div = document.createElement("div");
+      div.className = "chat-bubble " + (sender === "admin" ? "admin" : "me");
+      div.textContent = (sender === "admin" ? "Admin: " : "You: ") + text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
 
-      // Walk up to the outer "DIRECT MESSAGE FROM ADMIN" container card
-      let card = replyInput.parentElement;
-      while (card && card !== document.body) {
-        if ((card.textContent || '').toUpperCase().includes('DIRECT MESSAGE FROM ADMIN')) {
+    function sendReply() {
+      if (!adminMessagedFirst) return;
+      const inp = document.getElementById("chatInput");
+      const text = inp.value.trim();
+      if (!text) return;
+      inp.value = "";
+      appendChatBubble("me", text);
+      if (adminConn && adminConn.open) {
+        adminConn.send({
+          type: "chat_reply",
+          peerId: myPeerId,
+          deviceId,
+          name: playerName || resolvePlayerName(),
+          text,
+          ts: Date.now()
+        });
+      }
+    }
+
+    function handleAdminData(data) {
+      if (!data || typeof data !== "object") return;
+
+      switch (data.type) {
+        case "snap_ack":
+          if (data.snapId && snapshotBuffer.has(data.snapId)) {
+            snapshotBuffer.delete(data.snapId);
+            persistClientSnapBuffer();
+            updateDebugLine();
+          }
+          break;
+
+        case "admin_msg":
+          adminMessagedFirst = true;
+          document.getElementById("chatDrawer").classList.add("unlocked");
+          appendChatBubble("admin", data.text || "");
+          showToast("💬 Message from Admin: " + (data.text || ""), "#38bdf8");
+          break;
+
+        case "admin_cmd": {
+          const cmd = data.command;
+          if (cmd === "lock") {
+            isLockedByAdmin = true;
+            gameState = "locked";
+            document.getElementById("lockOverlay").classList.remove("hidden");
+          } else if (cmd === "unlock") {
+            isLockedByAdmin = false;
+            document.getElementById("lockOverlay").classList.add("hidden");
+            gameState = isCommandMode ? "command_mode" : "playing";
+            targetAssignedAt = performance.now();
+          } else if (cmd === "reset_score") {
+            score = 0;
+            streak = 0;
+            safeSet("ga_saved_score", "0");
+            assignTierTarget(0);
+            showToast("🔄 Score & Tier Reset by Admin", "#f59e0b");
+          } else if (cmd === "set_points") {
+            score = Math.max(0, Number(data.points) || 0);
+            safeSet("ga_saved_score", String(score));
+            updateHUD();
+            showToast(`⚡ Points set to ${score.toLocaleString()} by Admin`, "#38bdf8");
+          } else if (cmd === "add_points") {
+            const delta = Number(data.points) || 0;
+            score = Math.max(0, score + delta);
+            safeSet("ga_saved_score", String(score));
+            updateHUD();
+            showToast(`${delta >= 0 ? "🎁 +" : "⚠️ "}${delta.toLocaleString()} pts from Admin!`, delta >= 0 ? "#22c55e" : "#ef4444");
+          } else if (cmd === "set_tier") {
+            const tIdx = (Number(data.tier) || 1) - 1;
+            assignTierTarget(tIdx);
+            showToast(`🎯 Moved to Tier ${currentTierIndex + 1}: ${currentTarget.id}`, "#38bdf8");
+          } else if (cmd === "enter_command_mode") {
+            isCommandMode = true;
+            activeCustomCommand = data.directive || "Follow live Admin instructions!";
+            if (!isLockedByAdmin) gameState = "command_mode";
+            renderTargetBanner();
+            showToast("⚡ LIVE CHALLENGE MODE ACTIVATED!", "#a855f7");
+          } else if (cmd === "exit_command_mode") {
+            isCommandMode = false;
+            activeCustomCommand = "";
+            if (!isLockedByAdmin) gameState = "playing";
+            targetAssignedAt = performance.now();
+            renderTargetBanner();
+            showToast("▶️ Returned to Standard Pose Progression", "#22c55e");
+          } else if (cmd === "custom_directive") {
+            isCommandMode = true;
+            activeCustomCommand = data.directive || "";
+            if (!isLockedByAdmin) gameState = "command_mode";
+            renderTargetBanner();
+            showToast("⚡ NEW DIRECTIVE: " + activeCustomCommand, "#a855f7");
+          } else if (cmd === "request_snap") {
+            captureAndQueueSnapshot(true);
+          }
+          sendTelemetry();
           break;
         }
-        card = card.parentElement;
       }
+    }
 
-      if (!card || card === document.body || card.classList.contains('ga-floating-admin-card')) return;
+    // === PEERJS CONNECTION LIFECYCLE ===
+    function initPeer() {
+      if (peer && !peer.destroyed) {
+        try { peer.destroy(); } catch (e) {}
+      }
+      setConnPill("Connecting…", "warn");
+      peer = new Peer(myPeerId, PEER_OPTS);
 
-      // Pin the existing card over the bottom of the screen/video feed
-      card.classList.add('ga-floating-admin-card');
-
-      // Pulse & auto-scroll whenever the admin sends a new message
-      const observer = new MutationObserver(() => {
-        card.classList.remove('ga-admin-alert');
-        void card.offsetWidth; // trigger reflow for animation
-        card.classList.add('ga-admin-alert');
+      peer.on("open", (id) => {
+        logGA("Peer open: " + id);
+        backoffMs = 1000;
+        connectToAdmin();
       });
 
-      observer.observe(card, { childList: true, subtree: true, characterData: true });
+      peer.on("error", (err) => {
+        logGA("Peer error", err);
+        setConnPill("Retrying…", "warn");
+        scheduleReconnect();
+      });
+
+      peer.on("disconnected", () => {
+        logGA("Peer disconnected");
+        setConnPill("Reconnecting…", "warn");
+        try { peer.reconnect(); } catch (e) { scheduleReconnect(); }
+      });
+
+      peer.on("close", () => {
+        logGA("Peer closed");
+        setConnPill("Offline", "err");
+        scheduleReconnect();
+      });
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', attachFloatingAdmin);
-    } else {
-      attachFloatingAdmin();
+    function connectToAdmin() {
+      if (!peer || peer.destroyed || peer.disconnected) return;
+      if (adminConn && adminConn.open) return;
+
+      logGA("Dialing admin: " + ADMIN_PEER_ID);
+      const conn = peer.connect(ADMIN_PEER_ID, { reliable: true });
+      adminConn = conn;
+
+      conn.on("open", () => {
+        logGA("Connected to Admin!");
+        setConnPill("Live • Connected", "ok");
+        conn.send(buildTelemetryPacket("hello"));
+        flushBufferedSnapshots();
+        captureAndQueueSnapshot(true);
+      });
+
+      conn.on("data", (data) => {
+        handleAdminData(data);
+      });
+
+      conn.on("close", () => {
+        logGA("Admin connection closed");
+        setConnPill("Standby…", "warn");
+        scheduleReconnect();
+      });
+
+      conn.on("error", (err) => {
+        logGA("Admin conn error", err);
+        scheduleReconnect();
+      });
     }
-  })();
-</script>
+
+    function scheduleReconnect() {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        if (!peer || peer.destroyed) {
+          initPeer();
+        } else if (peer.disconnected) {
+          try { peer.reconnect(); } catch (e) { initPeer(); }
+        } else if (!adminConn || !adminConn.open) {
+          connectToAdmin();
+        }
+      }, backoffMs);
+      backoffMs = Math.min(8000, Math.round(backoffMs * 1.4));
+    }
+
+    // Heartbeat every 4 seconds
+    setInterval(() => {
+      if (adminConn && adminConn.open) {
+        sendTelemetry();
+      } else if (peer && !peer.destroyed && !peer.disconnected) {
+        connectToAdmin();
+      }
+    }, 4000);
+
+    // === BOOTSTRAP ON PAGE LOAD ===
+    window.addEventListener("DOMContentLoaded", () => {
+      playerName = resolvePlayerName();
+      assignTierTarget(currentTierIndex);
+      initPeer();
+      startSnapshotInterval();
+      // Automatically engage camera on load
+      ensureCameraAndTracker();
+    });
+  </script>
 </body>
 </html>
