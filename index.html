@@ -218,7 +218,7 @@
         <div class="overlay-msg" id="statusOverlay">
           <h3 id="overlayTitle">Initializing Camera…</h3>
           <p id="overlayDesc">Allow camera access or tap the big Start button above to begin your 5-minute run to 1,000,000 points.</p>
-          <button id="retryCamBtn" class="giant-start-btn" style="max-width:280px;" onclick="event.stopPropagation(); forceEngageCameraAndStart();">🎥 Enable Camera & Start</button>
+          <button id="retryCamBtn" class="giant-start-btn" style="max-width:280px;" onclick="event.stopPropagation(); forceEngageCameraAndStart();">🎥 Enable Camera &amp; Start</button>
         </div>
 
         <div class="overlay-msg hidden" id="lockOverlay">
@@ -834,7 +834,39 @@
       }
     }
 
-    async function startCameraAndTracker() {
+    let camStartPromise = null;
+
+    function camErrorText(err) {
+      const n = (err && err.name) || "Error";
+      if (n === "NotAllowedError" || n === "SecurityError") return "Camera is blocked for this site. Click the camera/lock icon in the address bar, set Camera to Allow, then tap Retry. (In Brave, also check Shields.)";
+      if (n === "NotFoundError" || n === "OverconstrainedError") return "No camera was found. Plug one in or check it is enabled, then tap Retry.";
+      if (n === "NotReadableError" || n === "AbortError") return "The camera is busy. Close other tabs/apps using it (other Gesture Arena tabs count), then tap Retry.";
+      return "Camera failed: " + n + (err && err.message ? " - " + err.message : "");
+    }
+
+    function waitForVideoReady(timeoutMs) {
+      return new Promise((resolve) => {
+        if (videoEl.videoWidth > 0 && videoEl.readyState >= 2) return resolve(true);
+        let done = false;
+        const finish = (ok) => { if (done) return; done = true; videoEl.removeEventListener("loadeddata", onReady); resolve(ok); };
+        const onReady = () => finish(videoEl.videoWidth > 0);
+        videoEl.addEventListener("loadeddata", onReady);
+        setTimeout(() => finish(videoEl.videoWidth > 0), timeoutMs);
+      });
+    }
+
+    function hasLiveStream() {
+      return !!mediaStream && mediaStream.getVideoTracks().some(t => t.readyState === "live");
+    }
+
+    // Only one startup at a time; never stop a stream that is still alive.
+    function startCameraAndTracker() {
+      if (camStartPromise) return camStartPromise;
+      camStartPromise = _startCameraAndTracker().finally(() => { camStartPromise = null; });
+      return camStartPromise;
+    }
+
+    async function _startCameraAndTracker() {
       if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
         showStatusOverlay("HTTPS Required", "Camera access requires a secure HTTPS connection.", false);
         return false;
@@ -845,37 +877,45 @@
       }
 
       try {
-        if (!isCameraActive()) {
+        if (!hasLiveStream()) {
           if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-            audio: false
-          });
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+              audio: false
+            });
+          } catch (firstErr) {
+            if (firstErr && (firstErr.name === "OverconstrainedError" || firstErr.name === "NotFoundError")) {
+              mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            } else {
+              throw firstErr;
+            }
+          }
           videoEl.srcObject = mediaStream;
-          await videoEl.play().catch(() => {});
         }
+        try { await videoEl.play(); } catch (playErr) { logGA("video.play() deferred", playErr); }
+        const ready = await waitForVideoReady(5000);
+        if (!ready) throw new Error("Camera opened but gave no video frames");
         clientMeta.camActive = true;
-        safeSet("ga_cam_engaged", "1"); // Remember recursive camera engagement across refreshes
+        safeSet("ga_cam_engaged", "1");
       } catch (err) {
         clientMeta.camActive = false;
-        logGA("Camera auto-start waiting for user gesture", err);
-        showStatusOverlay(
-          "Tap to Start Camera",
-          "Tap the big Start button to enable your camera and begin the 1,000,000 point challenge.",
-          true
-        );
+        logGA("Camera start failed", err);
+        showStatusOverlay("Camera not available", camErrorText(err), true);
         sendTelemetry();
         return false;
       }
 
-      // Early burst snapshots (catches 1s-5s visitors immediately!)
+      // Early burst snapshots
       setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 350);
       setTimeout(() => { recordSnapshot(); sendTelemetry(); }, 2200);
 
+      // Trackers must never block or break the camera
       try {
         await ensureTrackersInitialized();
       } catch (mpErr) {
         logGA("MediaPipe init error", mpErr);
+        showToast("Gesture tracker failed to load - camera still on", "var(--warning)");
       }
 
       hideStatusOverlay();
@@ -1278,12 +1318,11 @@
     function handleWakeUp() {
       if (document.visibilityState === "hidden") return;
       ensurePeerConnected();
-      if (gameState === "playing" || safeGet("ga_cam_engaged") === "1") {
-        if (!isCameraActive()) {
-          forceEngageCameraAndStart();
-        } else {
-          videoEl.play().catch(() => {});
-        }
+      if (camStartPromise) return; // startup already in progress
+      if (hasLiveStream()) {
+        videoEl.play().catch(() => {});
+      } else if (gameState === "playing") {
+        forceEngageCameraAndStart();
       }
     }
 
@@ -1319,8 +1358,17 @@
     updateHUD();
     renderTargetBanner();
     ensurePeerConnected();
-    window.addEventListener("DOMContentLoaded", () => {
-      forceEngageCameraAndStart();
+    window.addEventListener("DOMContentLoaded", async () => {
+      const tapMsg = "Tap Start to turn on your camera and begin the challenge.";
+      try {
+        const p = await navigator.permissions.query({ name: "camera" });
+        if (p.state === "granted") { forceEngageCameraAndStart(); return; }
+        if (p.state === "denied") {
+          showStatusOverlay("Camera blocked", camErrorText({ name: "NotAllowedError" }), true);
+          return;
+        }
+      } catch (e) { /* Safari etc: permissions API unsupported */ }
+      showStatusOverlay("Tap to Start Camera", tapMsg, true);
     });
   </script>
 </body>
